@@ -1,0 +1,67 @@
+schema_version = 1
+standards_version = "0.1.0"
+
+[[artifacts]]
+id = "standards"
+command = "craftguild-standards"
+project = "standards"
+kind = "rust"
+manifest = "Cargo.toml"
+lockfile = "Cargo.lock"
+package = "craftguild-standards"
+inputs = ["assets/banner.txt", "Makefile"]
+input_dirs = ["assets/fonts", "schemas"]
+
+[[sources]]
+pattern = "crates/*/src/**"
+role = "implementation"
+reason = "Runtime libraries, build preparation and quality tooling"
+
+[[sources]]
+pattern = "crates/*/build.rs"
+role = "implementation"
+reason = "Cargo build-script adapter"
+
+[[sources]]
+pattern = "crates/*/tests/**"
+role = "test"
+reason = "Integration tests run only by Cargo test"
+
+[[sources]]
+pattern = "scripts/*.py"
+role = "implementation"
+reason = "Build, install and repository verification tools"
+
+[[sources]]
+pattern = "scripts/tests/**"
+role = "test"
+reason = "Python verification of repository build/install scripts"
+
+[[sources]]
+pattern = "Makefile"
+role = "implementation"
+reason = "Canonical development command wiring"
+
+[[adapters]]
+language = "rust"
+test = ["cargo", "test", "--locked", "--workspace", "--no-default-features", "--features", "bootstrap"]
+format = ["cargo", "fmt", "--all", "--check"]
+lint = ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--no-default-features", "--features", "bootstrap", "--", "-D", "warnings"]
+
+[[commands]]
+id = "documents-and-provenance"
+purpose = "Check public document links and exact vendored schema/font inputs"
+argv = ["python3", "scripts/check_docs.py"]
+phase = "check"
+
+[[commands]]
+id = "repository-script-tests"
+purpose = "Verify target-aware install without building or using live paths"
+argv = ["python3", "-m", "unittest", "discover", "-s", "scripts/tests"]
+phase = "test"
+
+[[commands]]
+id = "offline-binary-and-install"
+purpose = "Isolated actual-host binary presentation, exact SBOM and staged install"
+argv = ["python3", "scripts/acceptance.py"]
+phase = "acceptance"

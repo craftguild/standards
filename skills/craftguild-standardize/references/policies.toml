@@ -1,0 +1,21 @@
+# Copy only policies required by the product's accepted contracts.
+[[policies]]
+kind = "dependencies"
+manifest = "Cargo.toml"
+layers = { domain = [], store = ["domain"], app = ["domain", "store"] }
+restricted = { sea-orm = ["store"] }
+
+[[policies]]
+kind = "sea-orm"
+manifest = "Cargo.toml"
+sources = ["crates/*/src/**/*.rs", "crates/*/tests/**/*.rs"]
+allowed_packages = ["store"]
+
+# A tiny product adapter converts canonical ownership metadata to the common
+# manifest shape; it must retain generator/schema/config/input and ABI checks.
+[[generated]]
+owner = "product-contract"
+manifest = "contracts/ownership.json"
+output_root = "generated/contracts"
+reproduce = ["python3", "scripts/generate-contract.py", "--output", "{output}"]
+rust_size_exception = true
