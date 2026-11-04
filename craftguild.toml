@@ -1,6 +1,21 @@
 schema_version = 1
 standards_version = "0.1.0"
 
+[[releases]]
+id = "standards"
+initial_version = "0.1.0"
+tag_prefix = "v"
+notes = "docs/releases"
+paths = ["Cargo.toml", "Cargo.lock", "package.json", "package-lock.json", "crates", "Makefile", "scripts", "adapters", "spec", "conformance", "docs", "skills", "assets", "schemas", "README.md", "craftguild.toml", ".github"]
+[[releases.cargo]]
+manifest = "Cargo.toml"
+lockfile = "Cargo.lock"
+workspace = true
+packages = ["craftguild-cli", "craftguild-cli-build", "craftguild-core", "craftguild-standards"]
+[[releases.npm]]
+manifest = "package.json"
+lockfile = "package-lock.json"
+
 [[policies]]
 kind = "publication"
 repository = "craftguild/standards"

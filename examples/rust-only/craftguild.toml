@@ -1,5 +1,15 @@
 schema_version = 1
 standards_version = "0.1.0"
+[[releases]]
+id = "sample"
+initial_version = "0.1.0"
+tag_prefix = "v"
+notes = "docs/releases"
+paths = ["src", "build.rs", "Cargo.toml", "Cargo.lock", "assets", "craftguild.toml"]
+[[releases.cargo]]
+manifest = "Cargo.toml"
+lockfile = "Cargo.lock"
+packages = ["example-rust"]
 [[artifacts]]
 id = "backend"
 command = "sample"

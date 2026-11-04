@@ -1,0 +1,50 @@
+# Releases
+
+Release preparation uses [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
+and [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html). A breaking `!` or
+`BREAKING CHANGE` / `BREAKING-CHANGE` footer selects MAJOR; otherwise `feat` selects
+MINOR and `fix` selects PATCH. Other types do not increment. The largest increment
+in the selected range is applied once, including for 0.x releases.
+
+Use a clean checkout with full history, all release tags, Cargo/npm lockfiles and
+the public keys needed to verify the history. The command rejects unsigned,
+unverifiable or invalid commit messages. It supports stable versions; prerelease
+and build-metadata versions require a separate explicit release procedure.
+
+Preview the comparison revisions, current/next versions, affected paths and English
+notes, then apply the same local preparation:
+
+```sh
+make release RELEASE_ARGS=--json
+make release
+```
+
+The tool equivalents are `craftguild-standards release --json` and
+`craftguild-standards release --apply`. Neither creates commits/tags, pushes,
+publishes, or installs anything. Changes come from literal paths configured for
+the group. A nonconventional merge message is an error; squash/prepare a compliant
+signed history before release, within the request's authorization.
+
+The first release has no baseline tag: all scoped history is included and the
+configured `initial_version` is retained without a second increment. Standards
+starts at **v0.1.0**. Later preparation compares the highest reachable group tag
+with the observed full HEAD. No bumping changes means no file changes.
+
+`[[releases]]` declares the version authority and synchronized Cargo/npm ownership;
+the first listed manifest owns the version. See the
+[design and consistency rules](../design/releases.md) and the repository's
+[`craftguild.toml`](../../craftguild.toml). npm dependency versions remain separate.
+The independent sample defaults to its backend group; its frontend release is
+selected explicitly with `make release RELEASE_GROUP=frontend`.
+
+Generated notes and a deterministic JSON receipt go into the group's public notes
+directory. Repeating preparation verifies those exact files and reports the same
+pending release. It also works after committing only the prepared edits. New source
+work while a release is pending is rejected; finish that release or explicitly
+revert its preparation first. Never overwrite a release tag.
+
+Review and sign the prepared changes with the approved personal OpenPGP key, verify
+the full commit, then build the final SBOM/binary from that clean commit. Run the
+required checks and anonymous-clone acceptance before creating the authorized
+release tag. Stop immediately on actual signing/verification failure. Isolated
+tests exercise failure handling with disposable test resources and keys.

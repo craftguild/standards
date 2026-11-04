@@ -7,12 +7,23 @@
 | `make test` | Ordinary automated tests for every product language |
 | `make check` | Tests, common quality, language and repository checks |
 | `make acceptance` | Isolated external-service/actual-host acceptance |
+| `make release` | Prepare version updates and English notes from Conventional Commits |
 
 Install honors `PREFIX`, `BINDIR`, `DESTDIR`, with default `/usr/local/bin`.
 Missing binaries fail with build instructions. `TARGET` and `CARGO_TARGET_DIR`
 select the matching build and install artifact. Privileged install never runs
 Cargo/npm. Focused development commands remain available. Report unavailable,
 skipped and unexecuted acceptance separately from success.
+
+Release preparation uses the [common release contract](releases.md).
+Preview precedes application; explicit configuration owns synchronized manifests,
+lockfiles and artifact scopes. Breaking changes select MAJOR, `feat` MINOR and
+`fix` PATCH, with no implicit 0.x exception. Use the greatest required increment
+once since the previous release tag; other types alone do not increment. An
+explicit first version avoids double-incrementing prepared initial manifests.
+Invalid messages and unavailable signatures fail. Preserve unrelated work and
+make repeated preparations idempotent. Commit, tag, push and publication remain
+separate authorized operations under the OpenPGP signature/stop contract.
 
 README order: project title/description, Quick start, System requirements, Build
 requirements, Usage/Public API, Known limitations, Community, Security, License.

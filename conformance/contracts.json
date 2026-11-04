@@ -67,5 +67,49 @@
     "CG-PUB-001": "Local dependency escapes the standalone repository",
     "CG-PUB-002": "Rust dependency lacks the required fixed public source",
     "CG-PUB-003": "npm dependency lacks a portable public source"
+  },
+  "release": {
+    "commit_standard": "Conventional Commits 1.0.0",
+    "version_standard": "Semantic Versioning 2.0.0",
+    "signature_format": "OpenPGP",
+    "initial_version": "0.1.0",
+    "commit_cases": [
+      {
+        "message": "fix: correct an error",
+        "bump": "patch"
+      },
+      {
+        "message": "feat(parser): add syntax",
+        "bump": "minor"
+      },
+      {
+        "message": "feat(api)!: remove legacy syntax",
+        "bump": "major"
+      },
+      {
+        "message": "chore!: remove legacy setup",
+        "bump": "major"
+      },
+      {
+        "message": "fix: change contract\n\nBREAKING CHANGE: migrate callers",
+        "bump": "major"
+      },
+      {
+        "message": "docs: describe contract\n\nBREAKING-CHANGE: migrate callers",
+        "bump": "major"
+      },
+      {
+        "message": "docs: explain the API",
+        "bump": "none"
+      },
+      {
+        "message": "test(api): add coverage",
+        "bump": "none"
+      },
+      {
+        "message": "Feat: add capability",
+        "bump": "minor"
+      }
+    ]
   }
 }

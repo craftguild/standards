@@ -25,3 +25,5 @@ proc-macro2 = { version = "=1.0.106", features = ["span-locations"] }
 quote = "=1.0.45"
 globset = "=0.4.20"
 tempfile = "=3.27.0"
+semver = "=1.0.28"
+toml_edit = "=0.22.27"

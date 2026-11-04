@@ -1,5 +1,16 @@
 # Configuration
 
+## Release groups
+
+Optional `[[releases]]` entries declare `id`, `initial_version`, `tag_prefix`, public
+`notes` directory and nonempty literal `paths`. Each group has explicit `cargo`
+and/or `npm` entries. Cargo takes `manifest`, `lockfile`, exact local `packages`
+and optional `workspace = true`; members then inherit the workspace version. npm
+takes `manifest` and its v3 `lockfile`. Groups cannot share a version/lockfile
+owner or tag prefix. All owned versions agree, with the first Cargo/npm manifest
+as authority. Independent artifacts use distinct groups. See
+[release design](releases.md) and [operation](../guides/releases.md).
+
 The versioned repository configuration is `craftguild.toml`, schema version 1.
 Unknown fields, unknown adapters/policies, unsafe paths, overlapping source roles,
 empty checks and absent required tools are errors. Paths are repository-relative;

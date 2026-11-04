@@ -1,5 +1,24 @@
 schema_version = 1
 standards_version = "0.1.0"
+[[releases]]
+id = "backend"
+initial_version = "0.1.0"
+tag_prefix = "backend-v"
+notes = "docs/backend-releases"
+paths = ["backend", "craftguild.toml"]
+[[releases.cargo]]
+manifest = "backend/Cargo.toml"
+lockfile = "backend/Cargo.lock"
+packages = ["backend-demo"]
+[[releases]]
+id = "frontend"
+initial_version = "0.1.0"
+tag_prefix = "frontend-v"
+notes = "docs/frontend-releases"
+paths = ["frontend", "craftguild.toml"]
+[[releases.npm]]
+manifest = "frontend/package.json"
+lockfile = "frontend/package-lock.json"
 [[artifacts]]
 id = "backend"
 command = "backend-demo"

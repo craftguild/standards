@@ -14,6 +14,8 @@ reference product, user configuration or running daemon.
 | Quality | 400/401, role exclusions, mixed syntax, missing measurements/tools, unknown configuration |
 | Policies | Dependency layers, parsed SeaORM uses, verified ownership/reproduction, repository checks |
 | Workflow | Agent pointers, make contracts, isolated install, target paths, docs/skill links |
+| Releases | Stable MAJOR/MINOR/PATCH, scoped range, first version, none/invalid changes, lockfiles, deterministic notes/replay, dirty work and tag protection |
+| Signing | OpenPGP verification for every real/test commit, missing-signature detection and isolated simulated failure with no publication |
 | Platforms | macOS/Linux CI and Rust 1.85 consumer libraries |
 | Publication | Reviewed inventory, public HTTPS clone/build, full-revision consumer, green CI, v0.1.0 |
 

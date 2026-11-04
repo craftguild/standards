@@ -36,6 +36,7 @@ def signed_git():
                     git(root, 'verify-commit', revision)
                 return result
 
+            git.environment = env
             yield git
         finally:
             subprocess.run(['gpgconf', '--homedir', temporary, '--kill', 'gpg-agent'],

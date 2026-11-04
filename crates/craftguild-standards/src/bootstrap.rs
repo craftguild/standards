@@ -12,6 +12,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Some((command, rest)) if command == "check" => {
             craftguild_standards::quality::run(rest, &mut std::io::stdout().lock())
         }
-        _ => Err("Bootstrap usage: banner | prepare | build".into()),
+        Some((command, rest)) if command == "release" => {
+            craftguild_standards::release::run(rest, &mut std::io::stdout().lock())
+        }
+        _ => Err("Bootstrap usage: banner | prepare | build | check | release".into()),
     }
 }

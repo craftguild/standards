@@ -38,3 +38,9 @@ product service or persistent state. The standalone frontend has a separate SBOM
 
 MIT OR Apache-2.0, as declared in the Cargo manifest. Third-party npm components
 retain their package licenses. The font attribution is in the standards repository.
+
+In a standalone Git checkout of this sample, use `make release RELEASE_ARGS=--json`
+to preview a release and `make release` to prepare local version/notes changes.
+Commit history must use Conventional Commits with verified OpenPGP signatures.
+The backend is the default release group; select the independent frontend with
+`make release RELEASE_GROUP=frontend`. Its version is not coupled to the backend.

@@ -4,7 +4,7 @@ use craftguild_cli::{help, sbom, version, Brand};
 
 include!(concat!(env!("OUT_DIR"), "/craftguild.rs"));
 
-const HELP: &str = "Usage: craftguild-standards <COMMAND>\n\nCommands:\n  banner TEXT    Generate Small Slant artwork\n  build          Prepare SBOM and build locked release artifacts\n  prepare        Prepare and validate artifact SBOMs\n  check          Run common quality, language and repository gates\n  sbom           Print the embedded CycloneDX JSON\n";
+const HELP: &str = "Usage: craftguild-standards <COMMAND>\n\nCommands:\n  banner TEXT    Generate Small Slant artwork\n  build          Prepare SBOM and build locked release artifacts\n  prepare        Prepare and validate artifact SBOMs\n  check          Run common quality, language and repository gates\n  release        Preview or apply a Conventional Commits release\n  sbom           Print the embedded CycloneDX JSON\n";
 
 fn main() {
     if let Err(error) = run() {
@@ -33,6 +33,9 @@ fn run() -> craftguild_core::Result<()> {
         }
         [command, rest @ ..] if command == "check" => {
             craftguild_standards::quality::run(rest, &mut output)?
+        }
+        [command, rest @ ..] if command == "release" => {
+            craftguild_standards::release::run(rest, &mut output)?
         }
         _ => return Err("Unknown command; use --help".into()),
     }

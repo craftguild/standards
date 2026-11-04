@@ -67,6 +67,14 @@ must work from only the binary without tools, valid configuration or state write
 
 ## Publication preparation when requested
 
+Configure explicit release groups, synchronized Cargo/npm version owners and
+separate independent artifacts. Use the common `release --json` preview followed
+by `release --apply` through `make release`; do not copy version/history logic into
+each product. The packaged development/publication contracts define increment,
+initial-version and repeat behavior. Sign every actual commit with the approved
+OpenPGP key and verify it. Stop on signing/verification failure without bypassing
+signing or continuing tag/push operations. Test histories use isolated test keys.
+
 Follow the publication contract's reviewed inventory and `.private/oss-archive/`
 procedure. Preserve working history locally; export to a separate directory and
 create public history there. Publish dependencies first, then update full fixed

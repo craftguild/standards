@@ -53,12 +53,16 @@ craftguild-standards banner standards --output assets/banner.txt
 craftguild-standards banner standards --check assets/banner.txt
 craftguild-standards build --artifact standards
 craftguild-standards check --json
+craftguild-standards release --json
 ```
 
 Configure artifacts, source roles, language adapters and repository checks in
 [`craftguild.toml`](craftguild.toml). Read the [contracts](spec/README.md),
 [architecture](docs/design/architecture.md), [configuration](docs/design/configuration.md)
 and [skill](skills/craftguild-standardize/SKILL.md).
+Use `make release RELEASE_ARGS=--json` to preview version updates and generated
+notes, then `make release` to prepare them locally. See the
+[release guide](docs/guides/releases.md) for groups, signed history and publication.
 Common crates use fixed full Git revisions from this repository and are not
 published to crates.io. A product retains its own argument grammar and passes
 `Brand`, `BuildInfo` and embedded SBOM bytes to the output functions.

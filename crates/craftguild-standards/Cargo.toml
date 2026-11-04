@@ -36,6 +36,8 @@ proc-macro2.workspace = true
 quote.workspace = true
 globset.workspace = true
 tempfile.workspace = true
+semver.workspace = true
+toml_edit.workspace = true
 html5ever = "=0.40.1"
 
 [build-dependencies]

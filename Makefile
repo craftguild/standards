@@ -4,10 +4,14 @@ BINDIR ?= $(PREFIX)/bin
 DESTDIR ?=
 CARGO_TARGET_DIR ?= target
 TARGET ?=
+RELEASE_ARGS ?= --apply
 BOOTSTRAP = cargo run --locked --quiet -p craftguild-standards --no-default-features --features bootstrap --bin craftguild-standards-bootstrap --
 TARGET_ARG = $(if $(TARGET),--target $(TARGET),)
 
-.PHONY: build install test check acceptance banner
+.PHONY: build install test check acceptance banner release
+release:
+	$(BOOTSTRAP) release $(RELEASE_ARGS)
+
 build:
 	$(BOOTSTRAP) build $(TARGET_ARG)
 

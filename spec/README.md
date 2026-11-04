@@ -14,3 +14,5 @@ Machine configuration and agent instructions must refer to these same rules.
 
 Conformance data in `conformance/` is the executable companion to these rules.
 Adapters must report unsupported or unmeasured cases, never silently pass them.
+
+[Release preparation](releases.md) defines version ownership, commit analysis, preview and local application.

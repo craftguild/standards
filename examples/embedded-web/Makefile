@@ -5,7 +5,10 @@ BINDIR ?= $(PREFIX)/bin
 DESTDIR ?=
 CARGO_TARGET_DIR ?= target
 TARGET ?=
-.PHONY: build test check acceptance install
+RELEASE_ARGS ?= --apply
+.PHONY: build test check acceptance install release
+release:
+	$(STANDARDS) release $(RELEASE_ARGS)
 build:
 	$(STANDARDS) build $(if $(TARGET),--target $(TARGET),)
 test:

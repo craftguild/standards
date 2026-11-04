@@ -21,6 +21,8 @@ pub struct Config {
     pub generated: Vec<Generated>,
     #[serde(default)]
     pub policies: Vec<Policy>,
+    #[serde(default)]
+    pub releases: Vec<crate::release::versions::Group>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -169,6 +171,7 @@ impl Config {
     }
 
     pub fn validate(&self) -> Result<()> {
+        crate::release::versions::validate(&self.releases)?;
         if self.schema_version != 1
             || self.standards_version != "0.1.0"
             || self.artifacts.is_empty()
