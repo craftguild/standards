@@ -6,6 +6,16 @@ version/SBOM presentation path. `make test` runs ordinary Rust tests. `make chec
 uses the common engine, roles, counter and configured adapters. `make acceptance`
 needs an already-built release executable and uses only temporary resources.
 
+Git conformance tests require GnuPG 2 with Ed25519 support. They create disposable
+keyrings and test keys, sign each fixture commit with OpenPGP, verify the resulting
+commit, and remove the keyring. They never use personal signing keys or modify
+global Git/GPG settings. A signing or verification error fails the check.
+
+Sign actual work with your approved OpenPGP key (`git commit -S`), then verify the
+full revision with `git verify-commit`. Stop on signing or verification failure;
+never bypass signing to continue committing, tagging or publishing. Use
+Conventional Commits messages for release history.
+
 For focused changes:
 
 ```sh

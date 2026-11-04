@@ -8,16 +8,11 @@ import shutil
 import subprocess
 import tempfile
 
-
-def git(root, *args):
-    return subprocess.check_output(['git', '-c', 'commit.gpgsign=false',
-                                    '-c', 'user.name=Conformance',
-                                    '-c', 'user.email=conformance@example.invalid',
-                                    *args], cwd=root, text=True).strip()
+from tests.signing import signed_git
 
 
 def verify(root, tool, env):
-    with tempfile.TemporaryDirectory(prefix='craftguild-identity-') as temporary:
+    with signed_git() as git, tempfile.TemporaryDirectory(prefix='craftguild-identity-') as temporary:
         parent = Path(temporary)
         source = parent / 'application'
         shutil.copytree(root / 'examples/rust-only', source,
@@ -26,7 +21,7 @@ def verify(root, tool, env):
             stream.write('ignored-scratch\n')
         git(source, 'init', '-b', 'main')
         git(source, 'add', '.')
-        git(source, 'commit', '-m', 'initial')
+        git(source, 'commit', '-S', '-m', 'test: initialize identity fixture')
         target = json.loads((root / '.craftguild/craftguild-standards/prepared.json').read_text())['build']['target']
         missing = subprocess.run(['cargo', 'build', '--locked', '--release', '--target', target],
                                  cwd=source, env=env, capture_output=True)
@@ -57,7 +52,7 @@ def verify(root, tool, env):
         dirty = build(source)
         assert dirty['commit'] == clean['commit'] and dirty['dirty'] == 'dirty'
         git(source, 'add', 'untracked')
-        git(source, 'commit', '-m', 'second')
+        git(source, 'commit', '-S', '-m', 'test: advance identity fixture')
         next_commit = build(source)
         assert next_commit['commit'] != clean['commit'] and next_commit['dirty'] == 'clean'
         linked = parent / 'linked'

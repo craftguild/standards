@@ -30,6 +30,11 @@ role = "implementation"
 reason = "Cargo build-script adapter"
 
 [[sources]]
+pattern = "conformance/git_fixture.rs"
+role = "test"
+reason = "Isolated OpenPGP test identity shared by Rust integration tests"
+
+[[sources]]
 pattern = "crates/*/tests/**"
 role = "test"
 reason = "Integration tests run only by Cargo test"

@@ -216,22 +216,7 @@ fn changed_scope_includes_staged_unstaged_and_untracked_implementation() {
         .status()
         .unwrap()
         .success());
-    assert!(Command::new("git")
-        .args([
-            "-c",
-            "commit.gpgsign=false",
-            "-c",
-            "user.name=Conformance",
-            "-c",
-            "user.email=conformance@example.invalid",
-            "commit",
-            "-qm",
-            "baseline"
-        ])
-        .current_dir(root)
-        .status()
-        .unwrap()
-        .success());
+    git_fixture::commit(root, "test: establish quality baseline");
     write(
         root,
         "src/main.rs",
@@ -259,3 +244,5 @@ fn changed_scope_includes_staged_unstaged_and_untracked_implementation() {
     assert!(report.findings.is_empty());
     assert!(inventory::files(root, Some("--output=unexpected")).is_err());
 }
+#[path = "../../../conformance/git_fixture.rs"]
+mod git_fixture;

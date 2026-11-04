@@ -35,6 +35,7 @@ a separate toolchain requirement. Platform gates and evidence requirements are i
 - Rust/Cargo 1.95 for the standards tool; Git; Make; Python 3 for repository scripts.
 - tokei **15.0.0** with JSON serialization for quality checks.
 - npm and a project's configured bundler/type/lint/test tools for npm distributions.
+- GnuPG 2 with Ed25519 support for signed Git conformance fixtures.
 
 Run `npm ci` in this repository before `make test` or `make check`; the npm adapter
 uses the pinned TypeScript parser. The Web examples have their own lockfiles and

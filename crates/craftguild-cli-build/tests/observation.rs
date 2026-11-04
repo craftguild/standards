@@ -3,6 +3,9 @@ use craftguild_core::Dirty;
 use std::path::Path;
 use std::process::Command;
 
+#[path = "../../../conformance/git_fixture.rs"]
+mod git_fixture;
+
 fn git(root: &Path, args: &[&str]) -> String {
     let output = Command::new("git")
         .args(args)
@@ -21,7 +24,6 @@ fn initialized() -> tempfile::TempDir {
     let temp = tempfile::tempdir().unwrap();
     git(temp.path(), &["init", "-b", "main"]);
     git(temp.path(), &["config", "user.name", "Conformance"]);
-    git(temp.path(), &["config", "commit.gpgsign", "false"]);
     git(
         temp.path(),
         &["config", "user.email", "conformance@example.invalid"],
@@ -29,7 +31,7 @@ fn initialized() -> tempfile::TempDir {
     std::fs::write(temp.path().join("source"), "original").unwrap();
     std::fs::write(temp.path().join(".gitignore"), "ignored\n").unwrap();
     git(temp.path(), &["add", "."]);
-    git(temp.path(), &["commit", "-m", "initial"]);
+    git_fixture::commit(temp.path(), "test: initialize observation fixture");
     temp
 }
 
@@ -49,7 +51,7 @@ fn clean_each_dirty_kind_and_ignored_files() {
     assert_eq!(repository(root).1, Dirty::Dirty);
     git(root, &["add", "source"]);
     assert_eq!(repository(root).1, Dirty::Dirty);
-    git(root, &["commit", "-m", "next"]);
+    git_fixture::commit(root, "test: advance observation fixture");
     let next = repository(root);
     assert_ne!(next.0, original.0);
     assert_eq!(next.1, Dirty::Clean);

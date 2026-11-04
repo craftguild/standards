@@ -27,6 +27,15 @@ regenerate provenance before committing consumer releases. Build final binaries
 from clean public commits. Never delete reachable historical hashes before
 replacing their references.
 
+Sign every actual-work and public-history commit using the approved OpenPGP key
+and verify each full revision with `git verify-commit`. Stop the task immediately
+on signing or verification failure; never disable signing or switch signature
+formats to bypass it. Test commits use isolated disposable OpenPGP keys and must
+also be signed and verified. Keep secret keys and authentication data out of
+repositories, logs and distribution archives. Recreating unsigned public ancestry
+requires explicit authorization and coordinated revision/lockfile updates; a
+signed descendant does not correct unsigned ancestors.
+
 Migration must reconcile existing conflicting instructions, size checkers, tests
 and design rules in the same change. Keep all required product invariants and
 generated ownership/reproduction gates. Do not treat standards adoption as a

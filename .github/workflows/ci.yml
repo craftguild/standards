@@ -22,6 +22,7 @@ jobs:
         with:
           node-version: 24
       - run: cargo install tokei --version 15.0.0 --locked
+      - run: gpg --version
       - run: npm ci
       - run: npm --prefix examples/embedded-web/web ci
       - run: npm --prefix examples/independent/frontend ci
