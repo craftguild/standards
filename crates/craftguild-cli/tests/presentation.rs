@@ -67,6 +67,23 @@ fn output_failure_is_never_success() {
     assert!(sbom(&mut Broken, b"{}").is_err());
 }
 
+struct FlushFailure;
+impl Write for FlushFailure {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Err(io::ErrorKind::BrokenPipe.into())
+    }
+}
+
+#[test]
+fn buffered_flush_failure_is_never_success() {
+    assert!(help(&mut FlushFailure, BRAND, "Usage\n").is_err());
+    assert!(version(&mut FlushFailure, BRAND, info(Some(false))).is_err());
+    assert!(sbom(&mut FlushFailure, b"{}").is_err());
+}
+
 #[test]
 fn reject_control_sequences_in_brand_and_build_values() {
     let mut bytes = vec![];

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "standards_version": "0.1.0",
+  "presentation": {
+    "help_arguments": [[], ["-h"], ["--help"]],
+    "version_arguments": [["-V"], ["--version"]],
+    "sbom_arguments": ["sbom"],
+    "affiliation_prefix": "craftguild/",
+    "success_exit_code": 0,
+    "encoding": "ASCII",
+    "sbom_format": "CycloneDX",
+    "sbom_version": "1.5"
+  },
+  "measurement": {
+    "counter": "tokei",
+    "version": "15.0.0",
+    "metric": "Code",
+    "implementation_limit": 400
+  },
+  "distributions": ["standalone", "embedded-assets", "independent-frontend-backend"],
+  "project_names": ["oriha.rs", "chigiri.rs", "musubi.rs", "pm9.rs", "agentchat.rs", "shiori.rs", "kicker.rs"],
+  "rule_ids": {
+    "CG-SIZE-001": "Implementation exceeds the Code limit",
+    "CG-SIZE-002": "Implementation is unmeasured",
+    "CG-SCOPE-001": "Requested source scope has no measured implementation",
+    "CG-GEN-001": "Generated role has no verified ownership",
+    "CG-DEP-001": "Dependency violates a layer restriction",
+    "CG-ORM-001": "Direct database driver/query dependency",
+    "CG-ORM-002": "ORM dependency outside permitted packages",
+    "CG-ORM-003": "Automatic model synchronization opt-in",
+    "CG-ORM-004": "Prohibited raw query source or API syntax",
+    "CG-AGENT-001": "Missing or inconsistent common/repository instruction blocks",
+    "CG-AGENT-002": "Other agent instructions do not reference the authority",
+    "CG-ADAPTER-001": "Required language adapter is missing",
+    "CG-GATE-001": "Ordinary test gate is missing",
+    "CG-GATE-002": "Required gate failed or could not execute",
+    "CG-CHECK-001": "Configuration, inventory or mandatory verification failed"
+  }
+}

@@ -9,7 +9,7 @@ kind = "rust"
 manifest = "Cargo.toml"
 lockfile = "Cargo.lock"
 package = "craftguild-standards"
-inputs = ["assets/banner.txt", "Makefile"]
+inputs = ["assets/banner.txt", "Makefile", "adapters/npm-tests.cjs", "conformance/contracts.json"]
 input_dirs = ["assets/fonts", "schemas"]
 
 [[sources]]
@@ -42,11 +42,57 @@ pattern = "Makefile"
 role = "implementation"
 reason = "Canonical development command wiring"
 
+[[sources]]
+pattern = ".github/workflows/**"
+role = "implementation"
+reason = "Platform and consumer MSRV verification orchestration"
+
 [[adapters]]
 language = "rust"
 test = ["cargo", "test", "--locked", "--workspace", "--no-default-features", "--features", "bootstrap"]
 format = ["cargo", "fmt", "--all", "--check"]
 lint = ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--no-default-features", "--features", "bootstrap", "--", "-D", "warnings"]
+
+[[sources]]
+pattern = "adapters/*.cjs"
+role = "implementation"
+reason = "Language parser adapters embedded in the standards tool"
+
+[[sources]]
+pattern = "adapters/tests/**"
+role = "test"
+reason = "Behavioral adapter tests executed by node:test"
+
+[[sources]]
+pattern = "examples/**/src/**"
+role = "implementation"
+reason = "Standalone sample implementations, including frontend code"
+
+[[sources]]
+pattern = "examples/**/build.rs"
+role = "implementation"
+reason = "Sample application build integration"
+
+[[sources]]
+pattern = "examples/**/scripts/*.py"
+role = "implementation"
+reason = "Sample install and acceptance entry points"
+
+[[sources]]
+pattern = "examples/**/Makefile"
+role = "implementation"
+reason = "Sample development entry points"
+
+[[sources]]
+pattern = "examples/**/tests/**"
+role = "test"
+reason = "Frontend behavior tests"
+
+[[adapters]]
+language = "npm"
+test = ["npm", "test"]
+lint = ["npm", "run", "lint"]
+typecheck = ["npm", "run", "typecheck"]
 
 [[commands]]
 id = "documents-and-provenance"

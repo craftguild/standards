@@ -17,14 +17,22 @@ impl Regions {
     fn test(&mut self, attrs: &[Attribute], span: Span) -> bool {
         let mut test = false;
         for attr in attrs {
-            if attr.path().is_ident("test")
-                || attr
-                    .path()
-                    .segments
-                    .last()
-                    .is_some_and(|s| s.ident == "test")
-            {
+            let path = attr
+                .path()
+                .segments
+                .iter()
+                .map(|s| s.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::");
+            if matches!(path.as_str(), "test" | "tokio::test" | "async_std::test") {
                 test = true;
+            } else if attr
+                .path()
+                .segments
+                .last()
+                .is_some_and(|s| s.ident == "test")
+            {
+                self.unsupported = true;
             }
             if attr.path().is_ident("cfg") {
                 match attr.parse_args::<syn::Meta>() {

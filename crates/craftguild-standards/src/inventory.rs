@@ -19,6 +19,9 @@ pub fn files(root: &Path, changed: Option<&str>) -> Result<BTreeSet<String>> {
     ];
     let mut names = decode(command::capture(root, &args)?)?;
     if let Some(base) = changed {
+        if base.is_empty() || base.starts_with('-') {
+            return Err("Expected a Git revision, not an option".into());
+        }
         args = vec![
             "git".into(),
             "diff".into(),

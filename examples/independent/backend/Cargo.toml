@@ -1,0 +1,15 @@
+[workspace]
+[package]
+name = "backend-demo"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+publish = false
+[[bin]]
+name = "backend-demo"
+path = "src/main.rs"
+[dependencies]
+craftguild-cli = { git = "https://github.com/craftguild/standards", rev = "76800657797708eaba16fc631a6d83d231557292" }
+[build-dependencies]
+craftguild-cli-build = { git = "https://github.com/craftguild/standards", rev = "76800657797708eaba16fc631a6d83d231557292" }

@@ -28,6 +28,15 @@ pub fn host(root: &Path) -> Result<String> {
 
 /// Prepare one artifact and optionally compile its locked release binary.
 pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> Result<Prepared> {
+    if target.is_empty()
+        || !target
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
+    {
+        return Err(
+            "Use a named target; custom target specification files are not supported".into(),
+        );
+    }
     let root = root.canonicalize()?;
     let directory = format!(".craftguild/{}", artifact.command);
     owned_directory(&root, &directory)?;
@@ -88,6 +97,9 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         files.insert(supplemental.clone());
         let records: Vec<Supplement> =
             serde_json::from_slice(&std::fs::read(paths::owned(&root, supplemental)?)?)?;
+        if records.is_empty() {
+            return Err("Configured supplemental components cannot be empty".into());
+        }
         for record in records {
             if record.name.is_empty()
                 || record.version.is_empty()
@@ -142,7 +154,24 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         .into_iter()
         .map(|name| Ok((name.clone(), paths::hash_file(&root, &name)?)))
         .collect::<Result<_>>()?;
-    let info = observe::capture(&root, &artifact.command, &version, target, "release");
+    let info = if artifact.kind == Kind::Rust {
+        observe::capture(&root, &artifact.command, &version, target, "release")
+    } else {
+        let (commit, dirty) = observe::repository(&root);
+        let node = String::from_utf8(command::capture(
+            &root,
+            &["node".into(), "--version".into()],
+        )?)?;
+        craftguild_core::BuildInfo {
+            command: artifact.command.clone(),
+            version: version.clone(),
+            commit,
+            dirty,
+            compiler: format!("node {}", node.trim()),
+            target: target.into(),
+            profile: "release".into(),
+        }
+    };
     info.validate()?;
     let mut prepared = Prepared {
         schema_version: 1,
@@ -231,14 +260,24 @@ pub fn run(args: &[String], compile: bool) -> Result<()> {
             _ => return Err("Usage: build|prepare [--artifact ID] [--target TRIPLE]".into()),
         }
     }
-    let target = target.map_or_else(|| host(&root), Ok)?;
+    let target = target.map_or_else(
+        || {
+            if config.artifacts.iter().any(|a| a.kind == Kind::Rust) {
+                host(&root)
+            } else {
+                Ok("browser".into())
+            }
+        },
+        Ok,
+    )?;
     let selected: Vec<_> = if let Some(id) = id {
         vec![config.artifact(id)?]
     } else {
         config.artifacts.iter().collect()
     };
     for a in selected {
-        let prepared = build(&root, a, &target, compile)?;
+        let artifact_target = a.target.as_deref().unwrap_or(&target);
+        let prepared = build(&root, a, artifact_target, compile)?;
         eprintln!("Prepared {} for {}: {}", a.id, target, prepared.sbom);
     }
     Ok(())

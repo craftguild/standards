@@ -84,6 +84,7 @@ fn mixed_rust_removes_only_syntax_confirmed_test_items() {
         rust_regions::implementation("#[cfg(any(test, feature=\"x\"))] fn mixed() {}\n").is_err()
     );
     assert!(rust_regions::implementation("fn malformed(").is_err());
+    assert!(rust_regions::implementation("#[custom::test] fn ambiguous() {}\n").is_err());
     let imp =
         rust_regions::implementation("fn normal() { let text = \"#[test] fn fake() {}\"; }\n")
             .unwrap();
@@ -147,9 +148,31 @@ fn sea_orm_checks_real_syntax_and_skips_comments_and_strings() {
 
 #[test]
 fn mixed_html_javascript_and_css_are_counted_once() {
-    let temp = fixture();
-    write(temp.path(),"src/page.html","<html>\n<style>\nbody { color: red; }\n</style>\n<script>\nconst x = 1;\nconst y = 2;\n</script>\n</html>\n");
-    assert_eq!(measure::file(temp.path(), "src/page.html").unwrap(), 9);
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .canonicalize()
+        .unwrap();
+    std::fs::create_dir_all(root.join("target")).unwrap();
+    let temp = tempfile::tempdir_in(root.join("target")).unwrap();
+    write(temp.path(),"page.html","<html>\n<style>\nbody { color: red; }\n</style>\n<script>\nconst x = 1;\nconst y = 2;\n</script>\n</html>\n");
+    let relative = temp
+        .path()
+        .join("page.html")
+        .strip_prefix(&root)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(measure::file(&root, &relative).unwrap(), 9);
+    write(
+        temp.path(),
+        "page.html",
+        "<html><script>test('case', () => {});</script></html>\n",
+    );
+    assert!(measure::file(&root, &relative).is_err());
 }
 
 #[test]
@@ -179,4 +202,60 @@ fn missing_counter_and_repository_gate_failure_never_pass() {
     quality::gates(temp.path(), &cfg, &mut report).unwrap();
     assert!(report.findings.iter().any(|f| f.rule == "CG-GATE-002"));
     assert!(report.executed.is_empty());
+}
+
+#[test]
+fn changed_scope_includes_staged_unstaged_and_untracked_implementation() {
+    let temp = fixture();
+    let root = temp.path();
+    write(root, "src/main.rs", "fn main() {}\n");
+    write(root, "src/other.rs", "pub fn original() {}\n");
+    assert!(Command::new("git")
+        .args(["add", "."])
+        .current_dir(root)
+        .status()
+        .unwrap()
+        .success());
+    assert!(Command::new("git")
+        .args([
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "user.name=Conformance",
+            "-c",
+            "user.email=conformance@example.invalid",
+            "commit",
+            "-qm",
+            "baseline"
+        ])
+        .current_dir(root)
+        .status()
+        .unwrap()
+        .success());
+    write(
+        root,
+        "src/main.rs",
+        "fn main() { println!(\"changed\"); }\n",
+    );
+    assert!(Command::new("git")
+        .args(["add", "src/main.rs"])
+        .current_dir(root)
+        .status()
+        .unwrap()
+        .success());
+    write(root, "src/other.rs", "pub fn changed() {}\n");
+    write(root, "src/new.rs", "pub fn untracked() {}\n");
+    let files = inventory::files(root, Some("HEAD")).unwrap();
+    assert_eq!(
+        files,
+        BTreeSet::from([
+            "src/main.rs".into(),
+            "src/other.rs".into(),
+            "src/new.rs".into()
+        ])
+    );
+    let report = quality::assess(root, &config::load(root).unwrap(), Some("HEAD")).unwrap();
+    assert_eq!(report.measured.len(), 3);
+    assert!(report.findings.is_empty());
+    assert!(inventory::files(root, Some("--output=unexpected")).is_err());
 }

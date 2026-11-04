@@ -1,0 +1,38 @@
+schema_version = 1
+standards_version = "0.1.0"
+[[artifacts]]
+id = "backend"
+command = "sample"
+project = "sample"
+kind = "rust"
+manifest = "Cargo.toml"
+lockfile = "Cargo.lock"
+package = "example-rust"
+inputs = ["assets/banner.txt"]
+
+[[sources]]
+pattern = "src/**"
+role = "implementation"
+reason = "Sample application owns its grammar"
+[[sources]]
+pattern = "build.rs"
+role = "implementation"
+reason = "Application build identity and SBOM embedding"
+[[adapters]]
+language = "rust"
+test = ["cargo", "test", "--locked", "--release", "--manifest-path", "Cargo.toml"]
+format = ["cargo", "fmt", "--manifest-path", "Cargo.toml", "--check"]
+lint = ["cargo", "clippy", "--locked", "--release", "--manifest-path", "Cargo.toml", "--", "-D", "warnings"]
+
+[[sources]]
+pattern = "Makefile"
+role = "implementation"
+reason = "Canonical sample development entries"
+[[sources]]
+pattern = "scripts/*.py"
+role = "implementation"
+reason = "Sample installation and actual-host acceptance"
+[[sources]]
+pattern = "tests/**"
+role = "test"
+reason = "Offline process conformance tests"

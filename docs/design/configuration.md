@@ -33,6 +33,7 @@ build-only operations do not require running unrelated quality gates.
 | manifest | Cargo.toml or frontend package.json, relative to repository root |
 | lockfile | Exact Cargo workspace lockfile or frontend package-lock.json |
 | package | Selected Cargo/npm package name |
+| target | Optional artifact-specific named target, such as `browser` for frontend |
 | features | Requested Cargo features; default empty |
 | no_default_features | Cargo default-feature selection; default false |
 | inputs | Additional required files, hashed individually |
@@ -61,6 +62,9 @@ Prepared files live under `.craftguild/<command>/`. The SBOM includes shared bui
 identity, effective root features, all sealed input hashes and directory inventories
 as standard CycloneDX properties. Build scripts recapture identity, compare Cargo
 features, verify every inventory/hash and schema, then embed those exact bytes.
+Custom Rust target specification files are not supported by this adapter; use a
+named compiler target. Frontend build facts record Node's version, while the
+bundler's version and inputs are identified by its sealed package-lock/metafile.
 
 ## Source roles and adapters
 
@@ -76,6 +80,16 @@ and optional `format` and `typecheck` argv. Rust requires `format`; npm requires
 All configured adapter gates execute during `check`, including changed-scope checks.
 Only structural source measurement is narrowed by changed scope; global ownership
 and dependency invariants remain global.
+Rust test items are removed by syntax spans while retaining lexical context and
+original implementation lines. The npm adapter uses the installed TypeScript AST
+to identify mixed test use and reports it unmeasured when reliable separation is
+unavailable. TypeScript must be installed in the product's npm tree or root.
+Embedded HTML/SVG scripts are tokenized as HTML and inspected as JavaScript before
+counting the original file's parent and embedded-language Code values once.
+Unsupported component syntax such as Vue/Svelte remains unmeasured. Test globals
+and known direct test imports are recognized; arbitrary product test wrappers need
+explicit roles or a retained repository check.
+`CRAFTGUILD_TOKEI` may select a counter executable path; its version is still fixed.
 
 ## Policies, generated outputs and repository gates
 

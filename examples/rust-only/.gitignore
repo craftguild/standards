@@ -1,0 +1,4 @@
+/target/
+/.craftguild/
+**/node_modules/
+**/dist/

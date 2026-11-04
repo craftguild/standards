@@ -1,0 +1,21 @@
+{
+  "name": "example-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --outfile=dist/app.js --metafile=metafile.json --platform=browser",
+    "lint": "node --check src/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/ui.test.js"
+  },
+  "dependencies": {
+    "is-number": "7.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3",
+    "@types/is-number": "7.0.5",
+    "picocolors": "1.1.1"
+  }
+}

@@ -51,7 +51,11 @@ pub fn assess(root: &Path, config: &Config, changed: Option<&str>) -> Result<Rep
     let mut report = Report {
         schema_version: 1,
         scope: changed.map_or("all".into(), |s| format!("changes from {s}")),
-        counter: "tokei 15.0.0".into(),
+        counter: format!(
+            "{} {}",
+            crate::contract::measurement().counter,
+            crate::contract::measurement().version
+        ),
         ..Report::default()
     };
     measure::counter(root)?;
@@ -82,12 +86,13 @@ pub fn assess(root: &Path, config: &Config, changed: Option<&str>) -> Result<Rep
         match measure::file(root, name) {
             Ok(code) => {
                 report.measured.insert(name.clone(), code);
-                if code > 400 && !report.exempt.contains(name) {
+                let limit = crate::contract::measurement().implementation_limit;
+                if code > limit && !report.exempt.contains(name) {
                     report.finding(
                         "CG-SIZE-001",
                         Some(name),
                         format!(
-                            "{code} implementation Code lines exceeds 400; assess responsibilities"
+                            "{code} implementation Code lines exceeds {limit}; assess responsibilities"
                         ),
                     );
                 }

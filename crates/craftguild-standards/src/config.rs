@@ -33,6 +33,7 @@ pub struct Artifact {
     pub manifest: String,
     pub lockfile: String,
     pub package: String,
+    pub target: Option<String>,
     #[serde(default)]
     pub features: Vec<String>,
     #[serde(default)]
@@ -198,6 +199,9 @@ impl Config {
             }
             if a.kind == Kind::Frontend && a.bundle.is_none() {
                 return Err("Frontend artifacts require bundle evidence".into());
+            }
+            if a.kind == Kind::Frontend && (!a.features.is_empty() || a.no_default_features) {
+                return Err("Cargo feature selection applies only to Rust artifacts".into());
             }
             if let Some(b) = &a.bundle {
                 for p in [&b.root, &b.directory, &b.lockfile, &b.metafile] {

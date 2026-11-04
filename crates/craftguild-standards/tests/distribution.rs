@@ -115,10 +115,17 @@ fn selected_target_features_and_runtime_edges_only() {
     second
         .verify(root, &second.build, &second.features)
         .unwrap();
-    write(root, "Cargo.lock", "# changed locked inputs\n");
+    let lock = std::fs::read_to_string(root.join("Cargo.lock")).unwrap();
+    write(
+        root,
+        "Cargo.lock",
+        &(lock + "\n# changed locked input identity\n"),
+    );
     assert!(second
         .verify(root, &second.build, &second.features)
         .is_err());
+    let refreshed = distribution::build(root, &a, "x86_64-pc-windows-msvc", false).unwrap();
+    assert_ne!(refreshed.sbom_sha256, second.sbom_sha256);
 }
 
 #[test]

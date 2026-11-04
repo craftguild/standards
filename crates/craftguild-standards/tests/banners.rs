@@ -2,9 +2,11 @@ use craftguild_standards::banner::{generate, run};
 use std::path::Path;
 
 #[test]
-fn matches_five_existing_normalized_assets() {
+fn matches_five_existing_and_two_additional_normalized_assets() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance/banners");
     for name in [
+        "oriha.rs",
+        "shiori.rs",
         "chigiri.rs",
         "musubi.rs",
         "pm9.rs",

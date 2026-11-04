@@ -10,7 +10,10 @@ pub fn counter(root: &Path) -> Result<()> {
         root,
         &[counter_program(), "--version".into()],
     )?)?;
-    if version.split_whitespace().take(2).collect::<Vec<_>>() != ["tokei", "15.0.0"] {
+    let contract = crate::contract::measurement();
+    if version.split_whitespace().take(2).collect::<Vec<_>>()
+        != [contract.counter.as_str(), contract.version.as_str()]
+    {
         return Err("Required counter is tokei 15.0.0 with JSON serialization support".into());
     }
     Ok(())
@@ -26,8 +29,30 @@ pub fn file(root: &Path, name: &str) -> Result<usize> {
         let text = std::fs::read_to_string(&source)?;
         std::fs::write(&path, rust_regions::implementation(&text)?)?;
     } else {
-        // Executable non-Rust mixed test/implementation must be split by an
-        // appropriate adapter. Whole-file test roles are already excluded.
+        if source
+            .extension()
+            .is_some_and(|e| e == "html" || e == "svg")
+        {
+            crate::html_regions::verify(root, &source)?;
+        }
+        if source
+            .extension()
+            .is_some_and(|e| e == "vue" || e == "svelte")
+        {
+            return Err("No reliable mixed component test-region adapter; unmeasured".into());
+        }
+        if source
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| {
+                matches!(
+                    e,
+                    "js" | "jsx" | "mjs" | "cjs" | "ts" | "tsx" | "mts" | "cts"
+                )
+            })
+        {
+            crate::npm_regions::verify(root, &source)?;
+        }
         std::fs::copy(&source, &path)?;
     }
     let output = command::capture(

@@ -16,6 +16,7 @@ install:
 
 test:
 	cargo test --locked --workspace --no-default-features --features bootstrap
+	npm test
 
 check:
 	$(BOOTSTRAP) check

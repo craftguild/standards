@@ -20,8 +20,9 @@ def package(root, destination):
         skill = Path(temporary) / 'craftguild-standardize'
         shutil.copytree(root / 'skills/craftguild-standardize', skill)
         shutil.copytree(root / 'spec', skill / 'references/standards')
-        shutil.copytree(root / 'schemas', skill / 'assets/schemas')
+        shutil.copytree(root / 'schemas', skill / 'schemas')
         shutil.copytree(root / 'assets/fonts', skill / 'assets/fonts')
+        shutil.copytree(root / 'conformance', skill / 'conformance')
         bundled = skill / 'assets/bin/craftguild-standards'
         bundled.parent.mkdir(parents=True)
         shutil.copy2(binary, bundled)

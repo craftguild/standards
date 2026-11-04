@@ -1,0 +1,59 @@
+schema_version = 1
+standards_version = "0.1.0"
+[[artifacts]]
+id = "backend"
+command = "embedded-demo"
+project = "embedded-demo"
+kind = "rust"
+manifest = "Cargo.toml"
+lockfile = "Cargo.lock"
+package = "embedded-demo"
+inputs = ["assets/banner.txt"]
+input_dirs = ["web/src"]
+[artifacts.bundle]
+root = "web"
+lockfile = "web/package-lock.json"
+metafile = "web/metafile.json"
+directory = "web/dist"
+command = ["npm", "--prefix", "web", "run", "build"]
+
+[[sources]]
+pattern = "src/**"
+role = "implementation"
+reason = "Sample application owns its grammar"
+[[sources]]
+pattern = "build.rs"
+role = "implementation"
+reason = "Application build identity and SBOM embedding"
+[[adapters]]
+language = "rust"
+test = ["cargo", "test", "--locked", "--release", "--manifest-path", "Cargo.toml"]
+format = ["cargo", "fmt", "--manifest-path", "Cargo.toml", "--check"]
+lint = ["cargo", "clippy", "--locked", "--release", "--manifest-path", "Cargo.toml", "--", "-D", "warnings"]
+
+[[sources]]
+pattern = "web/src/**"
+role = "implementation"
+reason = "Shipped frontend source"
+[[adapters]]
+language = "npm"
+test = ["npm", "--prefix", "web", "test"]
+lint = ["npm", "--prefix", "web", "run", "lint"]
+typecheck = ["npm", "--prefix", "web", "run", "typecheck"]
+
+[[sources]]
+pattern = "Makefile"
+role = "implementation"
+reason = "Canonical sample development entries"
+[[sources]]
+pattern = "scripts/*.py"
+role = "implementation"
+reason = "Sample installation and actual-host acceptance"
+[[sources]]
+pattern = "tests/**"
+role = "test"
+reason = "Offline process conformance tests"
+[[sources]]
+pattern = "web/tests/**"
+role = "test"
+reason = "Frontend dependency behavior tests"

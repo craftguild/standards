@@ -27,7 +27,7 @@ the appropriate build tools and a repository checkout.
 
 The consumer libraries `craftguild-cli`, `craftguild-cli-build` and
 `craftguild-core` declare Rust 1.85 compatibility. The standards executable uses
-a separate toolchain requirement. Platform evidence is recorded in the
+a separate toolchain requirement. Platform gates and evidence requirements are in the
 [verification guide](docs/guides/verification.md).
 
 ## Build requirements
@@ -35,6 +35,10 @@ a separate toolchain requirement. Platform evidence is recorded in the
 - Rust/Cargo 1.95 for the standards tool; Git; Make; Python 3 for repository scripts.
 - tokei **15.0.0** with JSON serialization for quality checks.
 - npm and a project's configured bundler/type/lint/test tools for npm distributions.
+
+Run `npm ci` in this repository before `make test` or `make check`; the npm adapter
+uses the pinned TypeScript parser. The Web examples have their own lockfiles and
+need `npm ci` in their frontend directories before their checks/builds.
 
 Small Slant font data and CycloneDX schemas are pinned and included. No Node.js
 process or font download is needed to generate a banner. Dependencies are locked

@@ -1,0 +1,41 @@
+name: Conformance
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          components: rustfmt, clippy
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: cargo install tokei --version 15.0.0 --locked
+      - run: npm ci
+      - run: npm --prefix examples/embedded-web/web ci
+      - run: npm --prefix examples/independent/frontend ci
+      - run: make check
+      - run: make build
+      - run: make acceptance
+      - run: python3 scripts/verify_examples.py
+      - run: python3 scripts/package_skill.py --output target/craftguild-standardize.tar.gz
+      - run: python3 scripts/verify_skill.py target/craftguild-standardize.tar.gz
+  consumer-msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.85.0
+      - run: cargo check --locked -p craftguild-cli -p craftguild-cli-build

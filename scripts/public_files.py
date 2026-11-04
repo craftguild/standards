@@ -11,8 +11,9 @@ import subprocess
 ROOT_FILES = {
     '.gitignore', 'AGENTS.md', 'CLAUDE.md', 'README.md', 'Cargo.toml',
     'Cargo.lock', 'Makefile', 'LICENSE-MIT', 'LICENSE-APACHE', 'craftguild.toml',
+    'package.json', 'package-lock.json',
 }
-TREES = ('.cargo/', '.github/', 'assets/', 'conformance/', 'crates/', 'docs/',
+TREES = ('.cargo/', '.github/', 'adapters/', 'assets/', 'conformance/', 'crates/', 'docs/',
          'examples/', 'schemas/', 'scripts/', 'skills/', 'spec/', 'templates/', 'tests/')
 PRIVATE = {'.git', '.private', '.craftguild', 'target', 'node_modules', 'dist',
            '__pycache__', '.DS_Store'}

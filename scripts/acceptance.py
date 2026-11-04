@@ -26,6 +26,7 @@ def verify(root):
     if not binary.is_file():
         raise ValueError('Run make build before acceptance.')
     expected_sbom = (root / prepared['sbom']).read_bytes()
+    contract = json.loads((root / 'conformance/contracts.json').read_text())['presentation']
     with tempfile.TemporaryDirectory(prefix='craftguild-acceptance-') as temporary:
         temp = Path(temporary)
         isolated = temp / 'only-binary'
@@ -35,11 +36,16 @@ def verify(root):
         (isolated / 'craftguild.toml').write_text('deliberately invalid TOML [')
         before = {p.name: p.read_bytes() for p in isolated.iterdir()}
         env = dict(os.environ, PATH='')
-        bare = run(copied, isolated, [], env)
-        assert bare == run(copied, isolated, ['-h'], env)
-        assert bare == run(copied, isolated, ['--help'], env)
-        assert run(copied, isolated, ['-V'], env) == run(copied, isolated, ['--version'], env)
+        variants = [run(copied, isolated, args, env) for args in contract['help_arguments']]
+        bare = variants[0]
+        assert all(value == bare for value in variants)
+        versions = [run(copied, isolated, args, env) for args in contract['version_arguments']]
+        assert all(value == versions[0] for value in versions)
         assert bare.count(b'craftguild/standards') == 1
+        lines = bare.decode('ascii').splitlines()
+        affiliation = next(i for i, line in enumerate(lines) if line.strip() == 'craftguild/standards')
+        width = max(len(line) for line in lines[:affiliation])
+        assert lines[affiliation] == ' ' * max(0, (width - len('craftguild/standards')) // 2) + 'craftguild/standards'
         assert b'\x1b' not in bare
         assert expected_sbom == run(copied, isolated, ['sbom'], env)
         assert json.loads(expected_sbom)['specVersion'] == '1.5'
