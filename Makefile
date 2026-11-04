@@ -21,6 +21,7 @@ install:
 test:
 	cargo test --locked --workspace --no-default-features --features bootstrap
 	npm test
+	python3 -m unittest discover -s scripts/tests
 
 check:
 	$(BOOTSTRAP) check

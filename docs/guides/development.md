@@ -2,7 +2,7 @@
 
 `make` uses a non-distributed bootstrap executable to prepare the final tool's
 own real SBOM, then builds the locked release binary. The bootstrap has no final
-version/SBOM presentation path. `make test` runs ordinary Rust tests. `make check`
+version/SBOM presentation path. `make test` runs ordinary Rust, npm and Python tests. `make check`
 uses the common engine, roles, counter and configured adapters. `make acceptance`
 needs an already-built release executable and uses only temporary resources.
 
