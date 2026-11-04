@@ -1,0 +1,20 @@
+[
+  {
+    "name": "FIGlet Small Slant",
+    "version": "2.1-1996-layout",
+    "type": "file",
+    "reference": "urn:craftguild:asset:small-slant",
+    "files": ["assets/fonts/smslant.flf"],
+    "license": "BSD-3-Clause",
+    "evidence": "Unmodified Glenn Chappell Small Slant font with Paul Burton's 1996 layout update, compiled into the banner renderer. Source, exact hash, attribution and distribution license are retained in the font notice and conformance provenance."
+  },
+  {
+    "name": "CycloneDX JSON validation schemas",
+    "version": "1.5",
+    "type": "file",
+    "reference": "urn:craftguild:asset:cyclonedx-schemas",
+    "files": ["schemas/bom-1.5.schema.json", "schemas/spdx.schema.json", "schemas/jsf-0.82.schema.json"],
+    "license": "Apache-2.0",
+    "evidence": "Official CycloneDX 1.5 schema and its two referenced schemas are compiled into the offline validator. The source tag, hashes, attribution and license are retained with the schemas."
+  }
+]

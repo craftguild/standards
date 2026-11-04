@@ -88,42 +88,59 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
     };
     let mut extra = vec![];
     if let Some(bundle) = &artifact.bundle {
-        let bundled = npm_bundle::collect(&root, bundle)?;
+        command::run(&root, &bundle.command)?;
+    }
+    let records: Vec<Supplement> = if let Some(path) = &artifact.supplemental {
+        files.insert(path.clone());
+        let records: Vec<Supplement> =
+            serde_json::from_slice(&std::fs::read(paths::owned(&root, path)?)?)?;
+        if records.is_empty() {
+            return Err("Configured supplemental components cannot be empty".into());
+        }
+        records
+    } else {
+        vec![]
+    };
+    let supplemental_files = records
+        .iter()
+        .flat_map(|r| r.files.iter().cloned())
+        .collect();
+    if let Some(bundle) = &artifact.bundle {
+        let bundled = npm_bundle::collect(&root, bundle, &supplemental_files)?;
         files.extend(bundled.files);
         dirs.insert(bundle.directory.clone());
         extra.extend(bundled.components);
     }
-    if let Some(supplemental) = &artifact.supplemental {
-        files.insert(supplemental.clone());
-        let records: Vec<Supplement> =
-            serde_json::from_slice(&std::fs::read(paths::owned(&root, supplemental)?)?)?;
-        if records.is_empty() {
-            return Err("Configured supplemental components cannot be empty".into());
+    for record in records {
+        if record.name.is_empty()
+            || record.version.is_empty()
+            || record.files.is_empty()
+            || record.evidence.trim().is_empty()
+        {
+            return Err(
+                "Supplemental components require identity, actual files and evidence".into(),
+            );
         }
-        for record in records {
-            if record.name.is_empty()
-                || record.version.is_empty()
-                || record.files.is_empty()
-                || record.evidence.trim().is_empty()
-            {
-                return Err(
-                    "Supplemental components require identity, actual files and evidence".into(),
-                );
-            }
-            let hashes: Vec<_> = record
-                .files
-                .iter()
-                .map(|name| {
-                    Ok(json!({"name":name,
+        let hashes: Vec<_> = record
+            .files
+            .iter()
+            .map(|name| {
+                Ok(json!({"name":name,
                 "sha256":paths::hash_file(&root,name)?}))
-                })
-                .collect::<Result<_>>()?;
-            files.extend(record.files);
-            extra.push(json!({"type":record.kind,"bom-ref":record.reference,
+            })
+            .collect::<Result<_>>()?;
+        files.extend(record.files);
+        let mut component = json!({"type":record.kind,"bom-ref":record.reference,
                 "name":record.name,"version":record.version,
                 "properties":[{"name":"craftguild:supplemental-files","value":serde_json::to_string(&hashes)?},
-                    {"name":"craftguild:evidence","value":record.evidence}]}));
+                    {"name":"craftguild:evidence","value":record.evidence}]});
+        if let Some(license) = record.license {
+            if license.trim().is_empty() {
+                return Err("Supplemental license expression cannot be empty".into());
+            }
+            component["licenses"] = json!([{"expression":license}]);
         }
+        extra.push(component);
     }
     let root_edges = dependencies
         .iter_mut()
@@ -214,6 +231,7 @@ struct Supplement {
     reference: String,
     files: Vec<String>,
     evidence: String,
+    license: Option<String>,
 }
 
 fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
@@ -260,25 +278,38 @@ pub fn run(args: &[String], compile: bool) -> Result<()> {
             _ => return Err("Usage: build|prepare [--artifact ID] [--target TRIPLE]".into()),
         }
     }
-    let target = target.map_or_else(
-        || {
-            if config.artifacts.iter().any(|a| a.kind == Kind::Rust) {
-                host(&root)
-            } else {
-                Ok("browser".into())
-            }
-        },
-        Ok,
-    )?;
     let selected: Vec<_> = if let Some(id) = id {
         vec![config.artifact(id)?]
     } else {
         config.artifacts.iter().collect()
     };
+    if target.is_some() && !selected.iter().any(|a| a.kind == Kind::Rust) {
+        return Err(
+            "--target selects a Rust target; configure a frontend target in craftguild.toml".into(),
+        );
+    }
+    let default_target = if target.is_none()
+        && selected
+            .iter()
+            .any(|a| a.kind == Kind::Rust && a.target.is_none())
+    {
+        host(&root)?
+    } else {
+        "browser".into()
+    };
     for a in selected {
-        let artifact_target = a.target.as_deref().unwrap_or(&target);
+        let artifact_target = match a.kind {
+            Kind::Rust => target
+                .as_deref()
+                .or(a.target.as_deref())
+                .unwrap_or(&default_target),
+            Kind::Frontend => a.target.as_deref().unwrap_or("browser"),
+        };
         let prepared = build(&root, a, artifact_target, compile)?;
-        eprintln!("Prepared {} for {}: {}", a.id, target, prepared.sbom);
+        eprintln!(
+            "Prepared {} for {}: {}",
+            a.id, prepared.build.target, prepared.sbom
+        );
     }
     Ok(())
 }

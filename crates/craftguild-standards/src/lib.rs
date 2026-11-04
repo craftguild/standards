@@ -14,6 +14,7 @@ pub mod measure;
 pub mod npm_bundle;
 pub mod npm_regions;
 pub mod policies;
+pub mod publication;
 pub mod quality;
 pub mod rust_graph;
 pub mod rust_regions;

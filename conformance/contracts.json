@@ -2,9 +2,26 @@
   "schema_version": 1,
   "standards_version": "0.1.0",
   "presentation": {
-    "help_arguments": [[], ["-h"], ["--help"]],
-    "version_arguments": [["-V"], ["--version"]],
-    "sbom_arguments": ["sbom"],
+    "help_arguments": [
+      [],
+      [
+        "-h"
+      ],
+      [
+        "--help"
+      ]
+    ],
+    "version_arguments": [
+      [
+        "-V"
+      ],
+      [
+        "--version"
+      ]
+    ],
+    "sbom_arguments": [
+      "sbom"
+    ],
     "affiliation_prefix": "craftguild/",
     "success_exit_code": 0,
     "encoding": "ASCII",
@@ -17,8 +34,20 @@
     "metric": "Code",
     "implementation_limit": 400
   },
-  "distributions": ["standalone", "embedded-assets", "independent-frontend-backend"],
-  "project_names": ["oriha.rs", "chigiri.rs", "musubi.rs", "pm9.rs", "agentchat.rs", "shiori.rs", "kicker.rs"],
+  "distributions": [
+    "standalone",
+    "embedded-assets",
+    "independent-frontend-backend"
+  ],
+  "project_names": [
+    "oriha.rs",
+    "chigiri.rs",
+    "musubi.rs",
+    "pm9.rs",
+    "agentchat.rs",
+    "shiori.rs",
+    "kicker.rs"
+  ],
   "rule_ids": {
     "CG-SIZE-001": "Implementation exceeds the Code limit",
     "CG-SIZE-002": "Implementation is unmeasured",
@@ -34,6 +63,9 @@
     "CG-ADAPTER-001": "Required language adapter is missing",
     "CG-GATE-001": "Ordinary test gate is missing",
     "CG-GATE-002": "Required gate failed or could not execute",
-    "CG-CHECK-001": "Configuration, inventory or mandatory verification failed"
+    "CG-CHECK-001": "Configuration, inventory or mandatory verification failed",
+    "CG-PUB-001": "Local dependency escapes the standalone repository",
+    "CG-PUB-002": "Rust dependency lacks the required fixed public source",
+    "CG-PUB-003": "npm dependency lacks a portable public source"
   }
 }

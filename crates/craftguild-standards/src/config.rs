@@ -133,6 +133,12 @@ pub struct Generated {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Policy {
+    Publication {
+        repository: String,
+        manifest: Option<String>,
+        #[serde(default)]
+        npm_lockfiles: Vec<String>,
+    },
     Dependencies {
         manifest: String,
         /// Every named first-party package has an exhaustive list of allowed edges.
@@ -204,7 +210,10 @@ impl Config {
                 return Err("Cargo feature selection applies only to Rust artifacts".into());
             }
             if let Some(b) = &a.bundle {
-                for p in [&b.root, &b.directory, &b.lockfile, &b.metafile] {
+                if b.root != "." {
+                    paths::relative(&b.root)?;
+                }
+                for p in [&b.directory, &b.lockfile, &b.metafile] {
                     paths::relative(p)?;
                 }
                 validate_argv(&b.command)?;
@@ -246,6 +255,31 @@ impl Config {
         }
         for policy in &self.policies {
             match policy {
+                Policy::Publication {
+                    repository,
+                    manifest,
+                    npm_lockfiles,
+                } => {
+                    let parts: Vec<_> = repository.split('/').collect();
+                    if parts.len() != 2
+                        || parts.iter().any(|s| {
+                            s.is_empty()
+                                || !s
+                                    .bytes()
+                                    .all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b))
+                        })
+                    {
+                        return Err(
+                            "Publication repository must be an owner/name identifier".into()
+                        );
+                    }
+                    if manifest.is_none() && npm_lockfiles.is_empty() {
+                        return Err("Empty publication source scope".into());
+                    }
+                    for path in manifest.iter().chain(npm_lockfiles) {
+                        paths::relative(path)?;
+                    }
+                }
                 Policy::Dependencies {
                     manifest, layers, ..
                 } => {

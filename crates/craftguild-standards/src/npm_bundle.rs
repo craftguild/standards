@@ -1,6 +1,6 @@
 //! Map actual esbuild output inputs to installed npm packages and locked identities.
 
-use crate::{command, config::Bundle};
+use crate::config::Bundle;
 use craftguild_core::{paths, Result};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,11 +12,28 @@ pub struct Bundled {
     pub assets: BTreeSet<String>,
 }
 
-pub fn collect(root: &Path, b: &Bundle) -> Result<Bundled> {
-    command::run(root, &b.command)?;
+pub fn collect(root: &Path, b: &Bundle, supplemental: &BTreeSet<String>) -> Result<Bundled> {
     let lock: Value = serde_json::from_slice(&std::fs::read(paths::owned(root, &b.lockfile)?)?)?;
     if lock["lockfileVersion"] != 3 {
         return Err("npm bundle adapter requires package-lock v3".into());
+    }
+    let manifest_path = under(&b.root, "package.json");
+    let manifest: Value =
+        serde_json::from_slice(&std::fs::read(paths::owned(root, &manifest_path)?)?)?;
+    let locked_root = lock["packages"][""]
+        .as_object()
+        .ok_or("Missing npm root package record")?;
+    for key in [
+        "name",
+        "version",
+        "dependencies",
+        "devDependencies",
+        "optionalDependencies",
+        "peerDependencies",
+    ] {
+        if manifest.get(key) != locked_root.get(key) {
+            return Err(format!("npm manifest differs from locked root: {key}").into());
+        }
     }
     let meta: Value = serde_json::from_slice(&std::fs::read(paths::owned(root, &b.metafile)?)?)?;
     let inputs = meta["inputs"].as_object().ok_or("Missing esbuild inputs")?;
@@ -28,10 +45,14 @@ pub fn collect(root: &Path, b: &Bundle) -> Result<Bundled> {
     }
     let actual = paths::inventory(root, &b.directory)?;
     let mut assets = BTreeSet::new();
-    let mut files = BTreeSet::from([b.lockfile.clone(), b.metafile.clone()]);
+    let mut files = BTreeSet::from([b.lockfile.clone(), b.metafile.clone(), manifest_path]);
+    let tsconfig = under(&b.root, "tsconfig.json");
+    if root.join(&tsconfig).exists() {
+        files.insert(tsconfig);
+    }
     let mut packages = BTreeMap::new();
     for (output, record) in outputs {
-        let path = format!("{}/{}", b.root, output);
+        let path = under(&b.root, output);
         let bytes = std::fs::read(paths::owned(root, &path)?)?;
         if record["bytes"].as_u64() != Some(bytes.len() as u64) || !actual.contains(&path) {
             return Err(format!("Bundle output bytes/ownership mismatch: {path}").into());
@@ -48,7 +69,7 @@ pub fn collect(root: &Path, b: &Bundle) -> Result<Bundled> {
             {
                 continue;
             }
-            let full = format!("{}/{}", b.root, input);
+            let full = under(&b.root, input);
             let data = std::fs::read(paths::owned(root, &full)?)?;
             if inputs[input]["bytes"].as_u64() != Some(data.len() as u64) {
                 return Err(format!("Bundle input differs from esbuild evidence: {full}").into());
@@ -62,13 +83,16 @@ pub fn collect(root: &Path, b: &Bundle) -> Result<Bundled> {
                 if entry["link"] == true {
                     return Err("Linked npm packages need explicit supplemental records".into());
                 }
-                let manifest_path = format!("{}/{key}/package.json", b.root);
+                let manifest_path = under(&b.root, &format!("{key}/package.json"));
                 let manifest: Value =
                     serde_json::from_slice(&std::fs::read(paths::owned(root, &manifest_path)?)?)?;
                 let name = manifest["name"]
                     .as_str()
                     .ok_or("Installed npm package has no name")?;
-                if manifest["version"] != version {
+                let locked_name = entry["name"]
+                    .as_str()
+                    .unwrap_or_else(|| key.rsplit("node_modules/").next().unwrap());
+                if manifest["version"] != version || name != locked_name {
                     return Err("Installed npm package differs from lockfile".into());
                 }
                 files.insert(manifest_path);
@@ -82,6 +106,7 @@ pub fn collect(root: &Path, b: &Bundle) -> Result<Bundled> {
             }
         }
     }
+    assets.extend(actual.intersection(supplemental).cloned());
     if assets != actual {
         return Err("Missing or extra files in bundled asset directory".into());
     }
@@ -108,4 +133,12 @@ fn package_key(input: &str) -> Result<Option<String>> {
         return Err("Invalid scoped npm bundle input".into());
     }
     Ok(Some(parts[..end].join("/")))
+}
+
+fn under(root: &str, name: &str) -> String {
+    if root == "." {
+        name.into()
+    } else {
+        format!("{root}/{name}")
+    }
 }

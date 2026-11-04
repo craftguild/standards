@@ -13,8 +13,23 @@ pub fn check(
 ) -> Result<Vec<(String, String)>> {
     let mut errors = vec![];
     for policy in policies {
+        if let Policy::Publication {
+            repository,
+            manifest,
+            npm_lockfiles,
+        } = policy
+        {
+            errors.extend(crate::publication::check(
+                root,
+                repository,
+                manifest.as_deref(),
+                npm_lockfiles,
+            )?);
+            continue;
+        }
         let manifest = match policy {
             Policy::Dependencies { manifest, .. } | Policy::SeaOrm { manifest, .. } => manifest,
+            Policy::Publication { .. } => unreachable!(),
         };
         let meta: Value = serde_json::from_slice(&command::capture(
             root,
@@ -33,6 +48,7 @@ pub fn check(
             .as_array()
             .ok_or("Missing dependency metadata")?;
         match policy {
+            Policy::Publication { .. } => unreachable!(),
             Policy::Dependencies {
                 layers, restricted, ..
             } => {

@@ -102,9 +102,11 @@ fn artifact(root: &Path) -> Artifact {
 fn selected_target_features_and_runtime_edges_only() {
     let temp = fixture();
     let root = temp.path();
+    write(root, ".cargo/config.toml", "[build]\nincremental = false\n");
     let mut a = artifact(root);
     let first = distribution::build(root, &a, "x86_64-unknown-linux-gnu", false).unwrap();
     assert_eq!(names(root, &first), vec!["runtime", "unix-only"]);
+    assert!(first.inputs.contains_key(".cargo/config.toml"));
     assert_eq!(first.build.dirty, Dirty::Unknown);
     let first_hash = first.sbom_sha256;
     a.features.push("optional-part".into());
@@ -135,8 +137,13 @@ fn embedded_npm_and_font_assets_but_no_unused_dev_dependency() {
     let mut a = artifact(root);
     write(
         root,
+        "web/package.json",
+        r#"{"name":"web-fixture","version":"1.0.0"}"#,
+    );
+    write(
+        root,
         "web/package-lock.json",
-        &json!({"lockfileVersion":3,"packages":{
+        &json!({"lockfileVersion":3,"packages":{"":{"name":"web-fixture","version":"1.0.0"},
         "node_modules/shipped":{"version":"2.0.0","dev":true},
         "node_modules/unused-dev":{"version":"9.0.0","dev":true}}})
         .to_string(),
@@ -154,11 +161,11 @@ fn embedded_npm_and_font_assets_but_no_unused_dev_dependency() {
     write(root, "web/dist/app.js", "console.log(42);\n");
     write(root,"web/metafile.json",&json!({"inputs":{"node_modules/shipped/index.js":{"bytes":25}},
         "outputs":{"dist/app.js":{"bytes":17,"inputs":{"node_modules/shipped/index.js":{"bytesInOutput":2}}}}}).to_string());
-    write(root, "font.woff2", "sample-font");
+    write(root, "web/dist/font.woff2", "sample-font");
     write(
         root,
         "supplemental.json",
-        r#"[{"name":"sample-font","version":"1.0","type":"file","reference":"font:sample","files":["font.woff2"],"evidence":"Explicitly bundled font fixture"}]"#,
+        r#"[{"name":"sample-font","version":"1.0","type":"file","reference":"font:sample","files":["web/dist/font.woff2"],"evidence":"Explicitly bundled font fixture","license":"MIT"}]"#,
     );
     a.supplemental = Some("supplemental.json".into());
     // The fixture command validates prewritten deterministic bundler evidence.
@@ -175,10 +182,101 @@ fn embedded_npm_and_font_assets_but_no_unused_dev_dependency() {
     assert!(included.contains(&"shipped".into()));
     assert!(included.contains(&"sample-font".into()));
     assert!(!included.contains(&"unused-dev".into()));
+    assert!(p.inputs.contains_key("web/package.json"));
+    write(
+        root,
+        "web/package.json",
+        r#"{"name":"web-fixture","version":"2.0.0"}"#,
+    );
+    assert!(p.verify(root, &p.build, &p.features).is_err());
+    assert!(distribution::build(root, &a, "x86_64-unknown-linux-gnu", false).is_err());
+    write(
+        root,
+        "web/package.json",
+        r#"{"name":"web-fixture","version":"1.0.0"}"#,
+    );
     write(root, "web/dist/app.js", "changed asset\n");
     assert!(p.verify(root, &p.build, &p.features).is_err());
     assert!(distribution::build(root, &a, "x86_64-unknown-linux-gnu", false).is_err());
     assert!(!root.join(".craftguild/demo/prepared.json").exists());
+}
+
+#[test]
+fn frontend_at_repository_root_has_a_separate_node_build_identity() {
+    let temp = fixture();
+    let root = temp.path();
+    let mut a = artifact(root);
+    a.kind = config::Kind::Frontend;
+    a.command = "root-ui".into();
+    a.package = "root-ui".into();
+    a.manifest = "package.json".into();
+    a.lockfile = "package-lock.json".into();
+    write(
+        root,
+        "package.json",
+        r#"{"name":"root-ui","version":"4.5.6"}"#,
+    );
+    write(
+        root,
+        "package-lock.json",
+        r#"{"lockfileVersion":3,"packages":{"":{"name":"root-ui","version":"4.5.6"}}}"#,
+    );
+    let script = "console.log(1);\n";
+    write(root, "src/root.js", script);
+    write(root, "dist/app.js", script);
+    write(root,"metafile.json",&json!({"inputs":{"src/root.js":{"bytes":script.len()}},
+        "outputs":{"dist/app.js":{"bytes":script.len(),"inputs":{"src/root.js":{"bytesInOutput":script.len()}}}}}).to_string());
+    a.bundle = Some(config::Bundle {
+        root: ".".into(),
+        lockfile: a.lockfile.clone(),
+        metafile: "metafile.json".into(),
+        directory: "dist".into(),
+        command: vec!["python3".into(), "-c".into(), "pass".into()],
+    });
+    let p = distribution::build(root, &a, "browser", false).unwrap();
+    assert_eq!(p.build.version, "4.5.6");
+    assert!(p.build.compiler.starts_with("node v"));
+    assert_eq!(p.build.target, "browser");
+    assert!(names(root, &p).is_empty());
+    assert!(p.inputs.contains_key("package.json"));
+    let mut configuration = config::load(root).unwrap();
+    configuration.artifacts = vec![a];
+    configuration.validate().unwrap();
+    let original = std::fs::read_to_string(root.join("craftguild.toml")).unwrap();
+    write(
+        root,
+        "craftguild.toml",
+        &(original
+            + r#"
+[[artifacts]]
+id="ui"
+command="root-ui"
+project="root-ui"
+kind="frontend"
+manifest="package.json"
+lockfile="package-lock.json"
+package="root-ui"
+target="browser"
+[artifacts.bundle]
+root="."
+lockfile="package-lock.json"
+metafile="metafile.json"
+directory="dist"
+command=["python3","-c","pass"]
+"#),
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_craftguild-standards-bootstrap"))
+        .args(["prepare", "--artifact", "ui"])
+        .current_dir(root)
+        .env("RUSTC", root.join("missing-compiler"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("for browser:"));
 }
 
 #[test]
@@ -193,7 +291,7 @@ fn independent_frontend_is_not_in_backend_distribution() {
     write(
         root,
         "frontend/package-lock.json",
-        r#"{"lockfileVersion":3,"packages":{}}"#,
+        r#"{"lockfileVersion":3,"packages":{"":{"name":"separate-ui","version":"4.5.6"}}}"#,
     );
     write(root, "frontend/src/main.js", "console.log('standalone');\n");
     write(root, "frontend/dist/app.js", "console.log('standalone');\n");

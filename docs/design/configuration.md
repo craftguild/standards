@@ -46,8 +46,15 @@ dependencies outside that root fail. Selected normal dependencies become SBOM
 components. Local build inputs are also sealed even when build-only packages are
 excluded from the distribution's component list. Run builds from the repository
 root so its configuration and source-root boundary are unambiguous.
+Existing repository/package Cargo configuration files are included automatically;
+declare other compiler, generator and product inputs explicitly in `inputs` or
+complete `input_dirs` inventories.
 
-`bundle` requires `root` (bundler working-root path), `lockfile`, `metafile`
+The CLI `--target` selects the Rust compilation target and overrides a Rust
+artifact's configured target. Frontend targets come from their artifact settings
+or default to `browser`; selecting only a frontend does not probe Rust tools.
+
+`bundle` requires `root` (bundler working-root path, or `.` for the repository root), `lockfile`, `metafile`
 (esbuild JSON), `directory` (exact output tree), and a nonempty build `command`
 argv executed from the repository root. Install locked npm inputs before building.
 Every metafile output must match a real output file and recorded byte length;
@@ -55,8 +62,12 @@ every positive byte contribution must match a real input. Node-module inputs map
 to package-lock v3 entries and installed package name/version. The actual bundle
 may include a development dependency; an unused dependency is never included
 merely because it exists in the lockfile. Linked npm packages need supplemental
-records. Supplemental records require `name`, `version`, CycloneDX `type`, unique
-`reference`, actual `files` and human-readable `evidence` describing inclusion.
+records. Extra output files require explicit supplemental ownership; an undeclared
+file still fails the exact bundle inventory. Supplemental records require `name`,
+`version`, CycloneDX `type`, unique `reference`, actual `files` and human-readable
+`evidence` describing inclusion. Optional `license` is an SPDX expression. The
+standards artifact itself records its embedded Small Slant font and validation
+schemas in [supplemental data](../../assets/supplemental.json).
 
 Prepared files live under `.craftguild/<command>/`. The SBOM includes shared build
 identity, effective root features, all sealed input hashes and directory inventories
@@ -92,6 +103,16 @@ explicit roles or a retained repository check.
 `CRAFTGUILD_TOKEI` may select a counter executable path; its version is still fixed.
 
 ## Policies, generated outputs and repository gates
+
+`kind = "publication"` takes the intended `repository` owner/name, optional Rust
+`manifest`, and optional `npm_lockfiles`. At least one input scope is required.
+It checks every declared dependency kind for standalone local paths and fixed,
+credential-free HTTPS Git sources. Consumer common crates must use the official
+standards Git source; only the owning `craftguild/standards` workspace may use its
+own internal common-crate paths. npm registry sources require integrity records;
+Git sources require full immutable hashes, and local links/files must stay inside
+the source repository. This is static source readiness, not proof of public access:
+anonymous fetch, clean clone/build and actual CI remain publication acceptance gates.
 
 `kind = "dependencies"` takes `manifest`, exhaustive first-party `layers` allowed
 edges, and optional `restricted` library-to-permitted-package lists. Missing layer

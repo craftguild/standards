@@ -48,10 +48,10 @@ in Cargo.lock. `make install` only copies a built binary and supports `PREFIX`,
 ## Usage
 
 ```sh
-craftguild-standards banner product --output assets/banner.txt
-craftguild-standards banner product --check assets/banner.txt
-craftguild-standards build --artifact backend
-craftguild-standards check --changed --json
+craftguild-standards banner standards --output assets/banner.txt
+craftguild-standards banner standards --check assets/banner.txt
+craftguild-standards build --artifact standards
+craftguild-standards check --json
 ```
 
 Configure artifacts, source roles, language adapters and repository checks in
@@ -61,6 +61,10 @@ and [skill](skills/craftguild-standardize/SKILL.md).
 Common crates use fixed full Git revisions from this repository and are not
 published to crates.io. A product retains its own argument grammar and passes
 `Brand`, `BuildInfo` and embedded SBOM bytes to the output functions.
+See the [standalone Rust](examples/rust-only/README.md),
+[embedded Web](examples/embedded-web/README.md) and
+[independent frontend/backend](examples/independent/README.md) examples.
+Use `check --changed --json` after implementation edits to narrow source measurement.
 
 ## Known limitations
 

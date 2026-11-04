@@ -109,6 +109,11 @@ fn parse(root: &Path, a: &Artifact, metadata: &Metadata, tree: &str) -> Result<G
         local_dirs: BTreeSet::new(),
     };
     let mut components = BTreeMap::new();
+    for path in [".cargo/config.toml", ".cargo/config"] {
+        if root.join(path).exists() {
+            graph.local_inputs.insert(path.into());
+        }
+    }
     let mut edges: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut stack: Vec<String> = vec![];
     for line in tree.lines().filter(|s| !s.is_empty()) {
@@ -194,7 +199,7 @@ fn parse(root: &Path, a: &Artifact, metadata: &Metadata, tree: &str) -> Result<G
             .local_inputs
             .insert(path.to_str().ok_or("Non-UTF8 manifest")?.into());
         let dir = p.manifest_path.parent().unwrap();
-        for name in ["build.rs"] {
+        for name in ["build.rs", ".cargo/config.toml", ".cargo/config"] {
             if dir.join(name).is_file() {
                 graph.local_inputs.insert(
                     dir.join(name)

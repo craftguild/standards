@@ -69,4 +69,36 @@ fn dependency_allow_lists_restricted_layers_and_orm_scope() {
         policies::check(root, &[orm], &sources).unwrap()[0].0,
         "CG-ORM-004"
     );
+    let publication = Policy::Publication {
+        repository: "craftguild/product".into(),
+        manifest: Some("Cargo.toml".into()),
+        npm_lockfiles: vec![],
+    };
+    assert!(
+        policies::check(root, std::slice::from_ref(&publication), &sources)
+            .unwrap()
+            .is_empty()
+    );
+    let outside = tempfile::tempdir().unwrap();
+    write(
+        outside.path(),
+        "Cargo.toml",
+        "[workspace]\n[package]\nname=\"craftguild-cli\"\nversion=\"0.1.0\"\nedition=\"2021\"\n",
+    );
+    write(outside.path(), "src/lib.rs", "pub struct Fixture;\n");
+    let mut app = std::fs::read_to_string(root.join("app/Cargo.toml")).unwrap();
+    app.push_str(&format!(
+        "common={{package=\"craftguild-cli\",path={:?}}}\n",
+        outside.path().to_str().unwrap()
+    ));
+    write(root, "app/Cargo.toml", &app);
+    assert!(Command::new("cargo")
+        .args(["generate-lockfile", "--offline"])
+        .current_dir(root)
+        .status()
+        .unwrap()
+        .success());
+    let findings = policies::check(root, &[publication], &sources).unwrap();
+    assert!(findings.iter().any(|(rule, _)| rule == "CG-PUB-001"));
+    assert!(findings.iter().any(|(rule, _)| rule == "CG-PUB-002"));
 }
