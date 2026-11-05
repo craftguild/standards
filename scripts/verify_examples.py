@@ -4,6 +4,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 
@@ -19,10 +20,20 @@ def verify(root):
     if not tool.is_file():
         raise ValueError('Run make build before verifying examples.')
     with tempfile.TemporaryDirectory(prefix='craftguild-example-build-') as temporary:
-        env = dict(os.environ, CARGO_TARGET_DIR=temporary)
+        base = Path(temporary)
+        env = dict(os.environ, CARGO_TARGET_DIR=str(base / 'outputs'))
         for name, command in [('rust-only', 'sample'), ('embedded-web', 'embedded-demo'),
                               ('independent', 'backend-demo')]:
-            sample = root / 'examples' / name
+            source = root / 'examples' / name
+            sample = base / name
+            shutil.copytree(source, sample, ignore=shutil.ignore_patterns(
+                '.git', '.craftguild', 'target', 'node_modules', '__pycache__', 'dist'))
+            for frontend in ['web', 'frontend']:
+                modules = source / frontend / 'node_modules'
+                if modules.is_dir():
+                    shutil.copytree(modules, sample / frontend / 'node_modules', symlinks=True)
+            # Inventory belongs to this application, never the parent checkout.
+            subprocess.run(['git', 'init', '--quiet', str(sample)], check=True)
             subprocess.run(['make', 'build', 'STANDARDS=' + str(tool)], cwd=sample,
                            env=env, check=True)
             subprocess.run(['make', 'acceptance'], cwd=sample, env=env, check=True)

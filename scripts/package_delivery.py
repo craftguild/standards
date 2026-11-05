@@ -4,8 +4,10 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
+import subprocess
 import tarfile
 import tempfile
 
@@ -17,6 +19,20 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def verify_checkout(root, revision):
+    if not (root / '.git').exists() or (root / '.git').is_symlink():
+        raise ValueError('Delivery requires Git at its explicit source root')
+    environment = {k: v for k, v in os.environ.items() if k not in {
+        'GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE',
+        'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES'}}
+    command = ['git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
+               '--git-dir', str(root / '.git'), '--work-tree', str(root)]
+    head = subprocess.check_output(command + ['rev-parse', 'HEAD'], env=environment).decode().strip()
+    dirty = subprocess.check_output(command + ['status', '--porcelain=v1', '-z'], env=environment)
+    if head != revision or dirty:
+        raise ValueError('Delivery checkout must match the clean verified build revision')
+
+
 def package(root, destination):
     receipt = json.loads((root / '.craftguild/craftguild-standards/receipt.json').read_text())
     build = receipt['prepared']['build']
@@ -25,6 +41,7 @@ def package(root, destination):
             or len(revision) != 40 or any(c not in '0123456789abcdef' for c in revision)
             or receipt['context']['host'] != build['target']):
         raise ValueError('Delivery requires a clean full-revision release build for this host')
+    verify_checkout(root, revision)
     if destination.exists() or destination.is_symlink():
         raise ValueError('Delivery destination must not already exist')
     destination.parent.mkdir(parents=True, exist_ok=True)

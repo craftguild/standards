@@ -68,7 +68,8 @@ Before publishing, review `python3 scripts/public_files.py`. An explicit
 Ignored private archives and task/connection data never enter that inventory.
 
 For host release assets, first commit and verify the source, then run `make build`.
-The delivery packager requires a clean full-revision native release build:
+The delivery packager requires a clean full-revision native release build and
+a clean checkout at that same revision:
 
 ```sh
 python3 scripts/package_delivery.py --output target/delivery
