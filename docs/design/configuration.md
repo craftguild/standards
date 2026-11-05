@@ -11,7 +11,8 @@ owner or tag prefix. All owned versions agree, with the first Cargo/npm manifest
 as authority. Independent artifacts use distinct groups. See
 [release design](releases.md) and [operation](../guides/releases.md).
 
-The versioned repository configuration is `craftguild.toml`, schema version 1.
+The versioned repository configuration is `craftguild.toml`. Published v0.1.0 uses
+schema 1; source development also supports the schema 2 execution extension.
 Unknown fields, unknown adapters/policies, unsafe paths, overlapping source roles,
 empty checks and absent required tools are errors. Paths are repository-relative;
 absolute paths, `..` traversal and escaping symlinks are forbidden.
@@ -28,10 +29,11 @@ The [architecture](architecture.md) is the design authority. The parser is
 
 ## Root
 
-`schema_version = 1` and `standards_version = "0.1.0"` are required. `artifacts`
+`schema_version = 1` or `2` and `standards_version = "0.1.0"` are required. `artifacts`
 is nonempty. Optional arrays are `sources`, `adapters`, `policies`, `generated`,
 and `commands`. Quality checks reject missing source roles/adapters/test gates;
-build-only operations do not require running unrelated quality gates.
+build-only operations do not require running unrelated quality gates. Schema 2
+also permits `operations`; schema 1 rejects both `operations` and artifact `build`.
 
 ## Artifacts
 
@@ -65,6 +67,10 @@ The CLI `--target` selects the Rust compilation target and overrides a Rust
 artifact's configured target. Frontend targets come from their artifact settings
 or default to `browser`; selecting only a frontend does not probe Rust tools.
 
+Source development additionally defines schema 2 orchestration in the
+[execution contract](orchestration.md). Schema 1 rejects its artifact `build`
+tables. This extension does not identify an available public engine release.
+
 `bundle` requires `root` (bundler working-root path, or `.` for the repository root), `lockfile`, `metafile`
 (esbuild JSON), `directory` (exact output tree), and a nonempty build `command`
 argv executed from the repository root. Install locked npm inputs before building.
@@ -80,10 +86,14 @@ file still fails the exact bundle inventory. Supplemental records require `name`
 standards artifact itself records its embedded Small Slant font and validation
 schemas in [supplemental data](../../assets/supplemental.json).
 
-Prepared files live under `.craftguild/<command>/`. The SBOM includes shared build
-identity, effective root features, all sealed input hashes and directory inventories
-as standard CycloneDX properties. Build scripts recapture identity, compare Cargo
-features, verify every inventory/hash and schema, then embed those exact bytes.
+Prepared files live under `.craftguild/<command>/`. Source-development seal schema
+2 keeps source hashes and directory inventories in those local records. The SBOM
+contains shared build identity, effective root features and dependency/component
+evidence, without a source file list, source hashes or an aggregate source-input
+digest. Build scripts recapture identity, compare Cargo features and verify the
+local inventory/hashes and SBOM schema, then embed only the SBOM bytes. Published
+schema 1 seals retain their original reading/verification rules; new builds use
+schema 2. Configuration and prepared seal schemas are versioned separately.
 Custom Rust target specification files are not supported by this adapter; use a
 named compiler target. Frontend build facts record Node's version, while the
 bundler's version and inputs are identified by its sealed package-lock/metafile.
@@ -102,8 +112,13 @@ and optional `format` and `typecheck` argv. Rust requires `format`; npm requires
 All configured adapter gates execute during `check`, including changed-scope checks.
 Only structural source measurement is narrowed by changed scope; global ownership
 and dependency invariants remain global.
-Rust test items are removed by syntax spans while retaining lexical context and
-original implementation lines. The npm adapter uses the installed TypeScript AST
+Rust test items, fields, variants, struct field values, match arms and statements
+are removed only when their parsed conditions require `test`. Boolean
+`all`/`any`/`not` predicates are evaluated with `test = false`; every possible
+production feature branch and its original attribute lines remain counted.
+Unsupported conditional contexts and test-dependent `cfg_attr` remain unmeasured.
+Syntax spans retain lexical context, punctuation and original implementation
+lines. The npm adapter uses the installed TypeScript AST
 to identify mixed test use and reports it unmeasured when reliable separation is
 unavailable. TypeScript must be installed in the product's npm tree or root.
 Embedded HTML/SVG scripts are tokenized as HTML and inspected as JavaScript before

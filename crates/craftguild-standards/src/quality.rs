@@ -1,7 +1,6 @@
 //! Common quality engine: inventory, roles, policies, adapter gates and stable results.
 
 use crate::{
-    command,
     config::{self, Config, Language, Phase, Role},
     generated, inventory, measure, policies,
 };
@@ -148,6 +147,20 @@ fn agent_instructions(root: &Path, version: &str, report: &mut Report) -> Result
 }
 
 pub fn gates(root: &Path, config: &Config, report: &mut Report) -> Result<()> {
+    gates_with(
+        root,
+        config,
+        report,
+        &crate::execution_process::Runner::default(),
+    )
+}
+
+pub fn gates_with(
+    root: &Path,
+    config: &Config,
+    report: &mut Report,
+    runner: &crate::execution_process::Runner,
+) -> Result<()> {
     let all = inventory::roles(&inventory::files(root, None)?, &config.sources)?;
     for (language, extensions) in [
         (Language::Rust, vec!["rs"]),
@@ -181,7 +194,13 @@ pub fn gates(root: &Path, config: &Config, report: &mut Report) -> Result<()> {
             ("typecheck", adapter.typecheck.as_ref()),
         ] {
             if let Some(argv) = argv {
-                gate(root, &format!("adapter-{index}-{kind}"), argv, report);
+                gate(
+                    root,
+                    &format!("adapter-{index}-{kind}"),
+                    argv,
+                    report,
+                    runner,
+                );
             }
         }
     }
@@ -190,19 +209,33 @@ pub fn gates(root: &Path, config: &Config, report: &mut Report) -> Result<()> {
         .iter()
         .filter(|c| c.phase != Phase::Acceptance)
     {
-        gate(root, &check.id, &check.argv, report);
+        gate(root, &check.id, &check.argv, report, runner);
     }
     Ok(())
 }
 
-fn gate(root: &Path, id: &str, argv: &[String], report: &mut Report) {
-    match command::capture(root, argv) {
+fn gate(
+    root: &Path,
+    id: &str,
+    argv: &[String],
+    report: &mut Report,
+    runner: &crate::execution_process::Runner,
+) {
+    match runner.capture(root, argv) {
         Ok(_) => report.executed.push(id.into()),
         Err(error) => report.finding("CG-GATE-002", None, format!("{id}: {error}")),
     }
 }
 
 pub fn run(args: &[String], output: &mut impl Write) -> Result<()> {
+    run_with(args, output, &crate::execution_process::Runner::default())
+}
+
+pub fn run_with(
+    args: &[String],
+    output: &mut impl Write,
+    runner: &crate::execution_process::Runner,
+) -> Result<()> {
     if matches!(args,[flag] if flag=="-h" || flag=="--help") {
         writeln!(output, "Usage: check [--changed | --base REV] [--json]")?;
         output.flush()?;
@@ -227,7 +260,7 @@ pub fn run(args: &[String], output: &mut impl Write) -> Result<()> {
     let result = (|| {
         let config = config::load(&root)?;
         let mut report = assess(&root, &config, changed.as_deref())?;
-        gates(&root, &config, &mut report)?;
+        gates_with(&root, &config, &mut report, runner)?;
         Ok::<_, Box<dyn std::error::Error + Send + Sync>>(report)
     })();
     let report = result.unwrap_or_else(|error| {

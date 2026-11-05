@@ -15,6 +15,16 @@ select the matching build and install artifact. Privileged install never runs
 Cargo/npm. Focused development commands remain available. Report unavailable,
 skipped and unexecuted acceptance separately from success.
 
+The source-development execution extension resolves artifact, toolchain, target,
+profile, features and outputs once. `PROFILE=debug` selects debug from preparation
+onward; release remains the default. Make, direct launcher and CI dispatch through
+one compatible pinned engine. Configured prerequisites and bounded argv hooks
+surround shared assets, dependency evidence, SBOM seal, compiler and verification.
+Required toolchains/SDKs must already exist. Publish outputs and success receipts
+only after verification; failures and cancellation retain the previous verified
+output and record the failed invocation separately. Install requires matching
+receipts and an existing engine/cache, without acquisition or bootstrap.
+
 Release preparation uses the [common release contract](releases.md).
 Preview precedes application; explicit configuration owns synchronized manifests,
 lockfiles and artifact scopes. Breaking changes select MAJOR, `feat` MINOR and

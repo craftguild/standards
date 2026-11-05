@@ -25,6 +25,7 @@ pub fn capture(
     let (commit, dirty) = repository(root);
     let compiler = output(
         Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()))
+            .env("RUSTUP_AUTO_INSTALL", "0")
             .arg("--version")
             .current_dir(root),
     )

@@ -33,7 +33,8 @@ cargo +1.85.0 check --locked -p craftguild-cli -p craftguild-cli-build
 The tool's Rust 1.95 requirement does not change the libraries' Rust 1.85 contract.
 Do not install the bootstrap as a product. Direct final `cargo build` refuses
 missing or stale preparation. Release preparation intentionally differs from a
-debug build; use the canonical entry for the final distribution.
+debug build. Use `make build PROFILE=debug` for matching debug identity and seals;
+the default remains release. Never rewrite release preparation to reuse it as debug.
 
 Install copies an existing binary without invoking compilers or npm:
 
@@ -45,7 +46,10 @@ make install TARGET=x86_64-unknown-linux-gnu CARGO_TARGET_DIR=/tmp/craftguild-ta
 
 Cross-target builds need the actual target toolchain/linker. These commands do not
 claim cross-compilation is available on every host. The install entry reads the
-prepared target identity and fails if TARGET differs or the binary is absent.
+verified receipt and the same output resolver as build. It fails if selectors,
+inputs, SBOM or binary differ, and never probes Rust/npm or bootstraps an engine.
+Build/setup must first run without privileges. See the
+[execution guide](orchestration.md) for source-development consumer entries.
 
 Package a host-specific, self-contained skill bundle after building:
 
@@ -54,7 +58,8 @@ python3 scripts/package_skill.py --output target/craftguild-standardize.tar.gz
 ```
 
 The bundle contains the skill, exact normative rules, schemas, licenses, a hash
-manifest and final host executable. Extract it into the chosen agent's skill
+manifest, compatible entry bundle and final host executable. Packaging uses the
+verified build receipt, including a selected profile/output directory. Extract it into the chosen agent's skill
 directory and add its `assets/bin` directory to the command search path when using
 the skill. Creating the bundle never installs or alters global skills.
 

@@ -1,10 +1,12 @@
 """Install must copy the selected artifact and fail without invoking a compiler."""
 
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 MODULE = Path(__file__).resolve().parents[1] / 'install.py'
 SPEC = importlib.util.spec_from_file_location('craftguild_install', MODULE)
@@ -13,23 +15,32 @@ SPEC.loader.exec_module(INSTALL)
 
 
 class InstallTests(unittest.TestCase):
-    def test_custom_target_directory_destdir_and_missing_binary(self):
+    def test_missing_or_tampered_engine_never_dispatches(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            record = root / '.craftguild/craftguild-standards/prepared.json'
+            record = root / '.craftguild/craftguild-standards/receipt.json'
             record.parent.mkdir(parents=True)
-            record.write_text(json.dumps({'build': {'target': 'test-target'}}))
             stage = root / 'stage'
             with self.assertRaisesRegex(ValueError, 'Run make build'):
                 INSTALL.install(root, '/opt/test/bin', str(stage), 'custom', '')
             binary = root / 'custom/test-target/release/craftguild-standards'
             binary.parent.mkdir(parents=True)
             binary.write_bytes(b'prebuilt executable fixture')
-            INSTALL.install(root, '/opt/test/bin', str(stage), 'custom', 'test-target')
-            self.assertEqual(binary.read_bytes(),
-                             (stage / 'opt/test/bin/craftguild-standards').read_bytes())
-            with self.assertRaisesRegex(ValueError, 'TARGET differs'):
-                INSTALL.install(root, '/opt/test/bin', str(stage), 'custom', 'other-target')
+            receipt = {'protocol': 'craftguild-execution-1',
+                       'context': {'output': str(binary.resolve())},
+                       'outputs': {binary.name: hashlib.sha256(binary.read_bytes()).hexdigest()}}
+            record.write_text(json.dumps(receipt))
+            with patch.object(INSTALL.subprocess, 'run') as execute:
+                INSTALL.install(root, '/opt/test/bin', str(stage), 'custom', 'test-target')
+                argv = execute.call_args.args[0]
+                self.assertEqual(argv[:2], [str(binary.resolve()), 'install'])
+                self.assertIn(str(stage), argv)
+                self.assertIn('test-target', argv)
+                execute.reset_mock()
+                binary.write_bytes(b'tampered')
+                with self.assertRaisesRegex(ValueError, 'integrity'):
+                    INSTALL.install(root, '/opt/test/bin', str(stage), 'custom', '')
+                execute.assert_not_called()
 
 
 if __name__ == '__main__':

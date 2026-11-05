@@ -2,7 +2,8 @@
 
 use crate::{
     command,
-    config::{self, Artifact, Kind},
+    config::{Artifact, Kind},
+    execution_process::Runner,
     npm_bundle, rust_graph,
 };
 use craftguild_cli_build::observe;
@@ -26,8 +27,46 @@ pub fn host(root: &Path) -> Result<String> {
         .ok_or_else(|| "Compiler did not identify its host target".into())
 }
 
-/// Prepare one artifact and optionally compile its locked release binary.
+/// Compatibility entry: actual builds use the same executor as CLI and Make.
 pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> Result<Prepared> {
+    if compile {
+        use crate::execution_context::{Context, Options};
+        let root = root.canonicalize()?;
+        let options = Options::parse(&["--target".into(), target.into()])?;
+        let context = Context::resolve(&root, artifact, &options)?;
+        let _lock = crate::execution_transaction::Lock::acquire(&root)?;
+        return crate::execution::execute(
+            &root,
+            artifact,
+            context,
+            &options,
+            true,
+            artifact.build.is_some(),
+        );
+    }
+    let runner = Runner::default();
+    let prepared = prepare_with(
+        root,
+        artifact,
+        target,
+        "release",
+        &format!(".craftguild/{}", artifact.command),
+        &runner,
+        true,
+    )?;
+    Ok(prepared)
+}
+
+/// Seal one resolved build context after the engine has prepared required assets.
+pub fn prepare_with(
+    root: &Path,
+    artifact: &Artifact,
+    target: &str,
+    profile: &str,
+    directory: &str,
+    runner: &Runner,
+    build_bundle: bool,
+) -> Result<Prepared> {
     if target.is_empty()
         || !target
             .bytes()
@@ -38,10 +77,9 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         );
     }
     let root = root.canonicalize()?;
-    let directory = format!(".craftguild/{}", artifact.command);
-    owned_directory(&root, &directory)?;
+    owned_directory(&root, directory)?;
     // Invalidate the old publication before commands run, so failure cannot reuse it.
-    let destination = root.join(&directory).join("prepared.json");
+    let destination = root.join(directory).join("prepared.json");
     if destination.exists() {
         std::fs::remove_file(&destination)?;
     }
@@ -52,9 +90,15 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         artifact.lockfile.clone(),
     ]);
     let mut dirs: BTreeSet<_> = artifact.input_dirs.iter().cloned().collect();
+    let mut root_license = None;
+    let library = artifact
+        .build
+        .as_ref()
+        .and_then(|build| build.library.as_ref());
     let (version, features, mut components, mut dependencies, root_ref) = match artifact.kind {
         Kind::Rust => {
-            let graph = rust_graph::resolve(&root, artifact, target)?;
+            let graph = rust_graph::resolve_with(&root, artifact, target, runner)?;
+            root_license = graph.license;
             files.extend(graph.local_inputs);
             dirs.extend(graph.local_dirs);
             let id = format!(
@@ -87,8 +131,10 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         }
     };
     let mut extra = vec![];
-    if let Some(bundle) = &artifact.bundle {
-        command::run(&root, &bundle.command)?;
+    if build_bundle {
+        if let Some(bundle) = &artifact.bundle {
+            runner.run(&root, &bundle.command)?;
+        }
     }
     let records: Vec<Supplement> = if let Some(path) = &artifact.supplemental {
         files.insert(path.clone());
@@ -172,13 +218,15 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         .map(|name| Ok((name.clone(), paths::hash_file(&root, &name)?)))
         .collect::<Result<_>>()?;
     let info = if artifact.kind == Kind::Rust {
-        observe::capture(&root, &artifact.command, &version, target, "release")
+        let mut info = observe::capture(&root, &artifact.command, &version, target, profile);
+        info.compiler =
+            String::from_utf8(runner.capture(&root, &["rustc".into(), "--version".into()])?)?
+                .trim()
+                .to_owned();
+        info
     } else {
         let (commit, dirty) = observe::repository(&root);
-        let node = String::from_utf8(command::capture(
-            &root,
-            &["node".into(), "--version".into()],
-        )?)?;
+        let node = String::from_utf8(runner.capture(&root, &["node".into(), "--version".into()])?)?;
         craftguild_core::BuildInfo {
             command: artifact.command.clone(),
             version: version.clone(),
@@ -186,12 +234,19 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
             dirty,
             compiler: format!("node {}", node.trim()),
             target: target.into(),
-            profile: "release".into(),
+            profile: profile.into(),
         }
     };
     info.validate()?;
+    if runner
+        .compiler_version
+        .as_ref()
+        .is_some_and(|expected| expected != &info.compiler)
+    {
+        return Err("Compiler changed after context resolution".into());
+    }
     let mut prepared = Prepared {
-        schema_version: 1,
+        schema_version: 2,
         build: info,
         features,
         inputs,
@@ -199,11 +254,22 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
         sbom: format!("{directory}/bom.json"),
         sbom_sha256: String::new(),
     };
+    let mut component = json!({"type":if library.is_some() { "library" } else { "application" },
+        "bom-ref":root_ref,"name":artifact.command,"version":version});
+    if let Some(license) = root_license {
+        component["licenses"] = json!([{"expression":license}]);
+    }
+    if let Some(library) = library {
+        let mut properties = library.properties.clone();
+        properties.insert("craftguild:library-target".into(), library.name.clone());
+        component["properties"] = json!(properties
+            .into_iter()
+            .map(|(name, value)| json!({"name":name,"value":value}))
+            .collect::<Vec<_>>());
+    }
     let bom = json!({"$schema":"http://cyclonedx.org/schema/bom-1.5.schema.json",
         "bomFormat":"CycloneDX","specVersion":"1.5","version":1,
-        "metadata":{"component":{"type":"application","bom-ref":root_ref,
-            "name":artifact.command,"version":version},
-            "properties":prepared.properties()?},
+        "metadata":{"component":component,"properties":prepared.properties()?},
         "components":components,"dependencies":dependencies});
     let mut bytes = serde_json::to_vec_pretty(&bom)?;
     bytes.push(b'\n');
@@ -212,12 +278,6 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
     atomic_write(&root.join(&prepared.sbom), &bytes)?;
     prepared.verify(&root, &prepared.build, &prepared.features)?;
     atomic_write(&destination, &serde_json::to_vec_pretty(&prepared)?)?;
-    if compile && artifact.kind == Kind::Rust {
-        let mut argv = vec!["cargo".into(), "build".into(), "--release".into()];
-        argv.extend(rust_graph::flags(artifact, target));
-        argv.extend(["--bin".into(), artifact.command.clone()]);
-        command::run(&root, &argv)?;
-    }
     Ok(prepared)
 }
 
@@ -234,7 +294,7 @@ struct Supplement {
     license: Option<String>,
 }
 
-fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
+pub(crate) fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
     use std::io::Write;
     if path.is_symlink() {
         return Err("Prepared output cannot replace a symlink".into());
@@ -246,7 +306,7 @@ fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn owned_directory(root: &Path, name: &str) -> Result<()> {
+pub(crate) fn owned_directory(root: &Path, name: &str) -> Result<()> {
     let mut current = root.to_owned();
     for part in paths::relative(name)?.components() {
         current.push(part);
@@ -263,53 +323,5 @@ fn owned_directory(root: &Path, name: &str) -> Result<()> {
 }
 
 pub fn run(args: &[String], compile: bool) -> Result<()> {
-    if matches!(args,[flag] if flag=="-h" || flag=="--help") {
-        println!("Usage: build|prepare [--artifact ID] [--target TRIPLE]");
-        return Ok(());
-    }
-    let root = std::env::current_dir()?.canonicalize()?;
-    let config = config::load(&root)?;
-    let mut id = None;
-    let mut target = None;
-    for pair in args.chunks(2) {
-        match pair {
-            [flag, value] if flag == "--artifact" && id.is_none() => id = Some(value.as_str()),
-            [flag, value] if flag == "--target" && target.is_none() => target = Some(value.clone()),
-            _ => return Err("Usage: build|prepare [--artifact ID] [--target TRIPLE]".into()),
-        }
-    }
-    let selected: Vec<_> = if let Some(id) = id {
-        vec![config.artifact(id)?]
-    } else {
-        config.artifacts.iter().collect()
-    };
-    if target.is_some() && !selected.iter().any(|a| a.kind == Kind::Rust) {
-        return Err(
-            "--target selects a Rust target; configure a frontend target in craftguild.toml".into(),
-        );
-    }
-    let default_target = if target.is_none()
-        && selected
-            .iter()
-            .any(|a| a.kind == Kind::Rust && a.target.is_none())
-    {
-        host(&root)?
-    } else {
-        "browser".into()
-    };
-    for a in selected {
-        let artifact_target = match a.kind {
-            Kind::Rust => target
-                .as_deref()
-                .or(a.target.as_deref())
-                .unwrap_or(&default_target),
-            Kind::Frontend => a.target.as_deref().unwrap_or("browser"),
-        };
-        let prepared = build(&root, a, artifact_target, compile)?;
-        eprintln!(
-            "Prepared {} for {}: {}",
-            a.id, prepared.build.target, prepared.sbom
-        );
-    }
-    Ok(())
+    crate::execution::run(args, compile)
 }

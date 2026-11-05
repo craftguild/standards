@@ -47,6 +47,16 @@ fn fixture() -> tempfile::TempDir {
     temp
 }
 
+#[test]
+fn source_export_inventory_never_inherits_a_parent_repository() {
+    let parent = fixture();
+    let export = parent.path().join("export");
+    std::fs::create_dir(&export).unwrap();
+    write(&export, "src/runtime.rs", "pub fn runtime() {}\n");
+    let error = inventory::files(&export, None).unwrap_err().to_string();
+    assert!(error.contains("explicit repository root"));
+}
+
 fn lines(count: usize) -> String {
     (0..count)
         .map(|i| format!("const VALUE_{i}: usize = {i};\n"))
@@ -80,8 +90,10 @@ fn mixed_rust_removes_only_syntax_confirmed_test_items() {
     );
     write(root, "src/mixed.rs", &text);
     assert_eq!(measure::file(root, "src/mixed.rs").unwrap(), 400);
-    assert!(
-        rust_regions::implementation("#[cfg(any(test, feature=\"x\"))] fn mixed() {}\n").is_err()
+    let conditional = "#[cfg(any(test, feature=\"x\"))] fn mixed() {}\n";
+    assert_eq!(
+        rust_regions::implementation(conditional).unwrap(),
+        conditional
     );
     assert!(rust_regions::implementation("fn malformed(").is_err());
     assert!(rust_regions::implementation("#[custom::test] fn ambiguous() {}\n").is_err());

@@ -22,7 +22,7 @@ pub fn emit(root: &Path, command: &str) -> Result<BuildInfo> {
         "cargo:rerun-if-changed={}",
         out.join("recapture-each-build").display()
     );
-    for name in ["CRAFTGUILD_PREPARED", "RUSTC"] {
+    for name in ["CRAFTGUILD_PREPARED", "CRAFTGUILD_COMMAND", "RUSTC"] {
         println!("cargo:rerun-if-env-changed={name}");
     }
     let info = observe::capture(
@@ -32,8 +32,16 @@ pub fn emit(root: &Path, command: &str) -> Result<BuildInfo> {
         &std::env::var("TARGET")?,
         &std::env::var("PROFILE")?,
     );
-    let record = std::env::var("CRAFTGUILD_PREPARED")
-        .unwrap_or_else(|_| format!(".craftguild/{command}/prepared.json"));
+    let selected = std::env::var("CRAFTGUILD_COMMAND").ok();
+    let record = if selected
+        .as_deref()
+        .is_none_or(|selected| selected == command)
+    {
+        std::env::var("CRAFTGUILD_PREPARED").ok()
+    } else {
+        None
+    }
+    .unwrap_or_else(|| format!(".craftguild/{command}/prepared.json"));
     let result = (|| -> Result<Vec<u8>> {
         let prepared: Prepared = serde_json::from_slice(&std::fs::read(
             craftguild_core::paths::owned(root, &record)?,

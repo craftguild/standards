@@ -10,6 +10,7 @@ use std::path::Path;
 pub struct Config {
     pub schema_version: u32,
     pub standards_version: String,
+    pub operations: Option<Vec<crate::operation_config::Operation>>,
     pub artifacts: Vec<Artifact>,
     #[serde(default)]
     pub sources: Vec<Source>,
@@ -47,6 +48,7 @@ pub struct Artifact {
     /// Bundler metadata mapped to npm package-lock v3 for shipped Web code.
     pub bundle: Option<Bundle>,
     pub supplemental: Option<String>,
+    pub build: Option<crate::build_config::Build>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -171,8 +173,9 @@ impl Config {
     }
 
     pub fn validate(&self) -> Result<()> {
+        crate::operation_config::validate(self)?;
         crate::release::versions::validate(&self.releases)?;
-        if self.schema_version != 1
+        if !matches!(self.schema_version, 1 | 2)
             || self.standards_version != "0.1.0"
             || self.artifacts.is_empty()
         {
@@ -181,6 +184,12 @@ impl Config {
         let mut ids = BTreeSet::new();
         let mut commands = BTreeSet::new();
         for a in &self.artifacts {
+            if self.schema_version == 1 && a.build.is_some() {
+                return Err("Artifact build settings require configuration schema 2".into());
+            }
+            if let Some(build) = &a.build {
+                build.validate(a)?;
+            }
             for value in [&a.id, &a.command, &a.project, &a.package] {
                 if value.is_empty()
                     || !value
@@ -213,6 +222,8 @@ impl Config {
                 return Err("Cargo feature selection applies only to Rust artifacts".into());
             }
             if let Some(b) = &a.bundle {
+                crate::build_config::output_path(&b.directory, &a.command)?;
+                crate::build_config::output_path(&b.metafile, &a.command)?;
                 if b.root != "." {
                     paths::relative(&b.root)?;
                 }
@@ -222,6 +233,7 @@ impl Config {
                 validate_argv(&b.command)?;
             }
         }
+        crate::build_config::artifact_order(self, None)?;
         ids.clear();
         for c in &self.commands {
             if c.id.is_empty() || c.purpose.trim().is_empty() || !ids.insert(&c.id) {

@@ -127,7 +127,11 @@ fn selected_target_features_and_runtime_edges_only() {
         .verify(root, &second.build, &second.features)
         .is_err());
     let refreshed = distribution::build(root, &a, "x86_64-pc-windows-msvc", false).unwrap();
-    assert_ne!(refreshed.sbom_sha256, second.sbom_sha256);
+    assert_eq!(refreshed.sbom_sha256, second.sbom_sha256);
+    assert_ne!(
+        refreshed.input_digest().unwrap(),
+        second.input_digest().unwrap()
+    );
 }
 
 #[test]
@@ -277,6 +281,17 @@ command=["python3","-c","pass"]
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(String::from_utf8_lossy(&output.stderr).contains("for browser:"));
+    let verified = Command::new(env!("CARGO_BIN_EXE_craftguild-standards-bootstrap"))
+        .args(["verify-frontend", "--artifact", "ui"])
+        .current_dir(root)
+        .env("RUSTC", root.join("missing-compiler"))
+        .output()
+        .unwrap();
+    assert!(
+        verified.status.success(),
+        "{}",
+        String::from_utf8_lossy(&verified.stderr)
+    );
 }
 
 #[test]

@@ -122,6 +122,54 @@ lockfile="package-lock.json"
         self.assertEqual(metadata['packages'][0]['version'], '1.0.0')
         self.assertTrue(self.release()['prepared'])
 
+    def test_apply_build_derived_evidence_and_reapply_preserve_plan(self):
+        self.write('.gitignore', '.craftguild/\ntarget/\n')
+        self.write('build.rs', '''fn main() {
+    let prepared = std::env::var("CRAFTGUILD_PREPARED").unwrap();
+    let bom = std::path::Path::new(&prepared).parent().unwrap().join("bom.json");
+    println!("cargo:rustc-env=FIXTURE_SBOM={}/{}", std::env::var("CARGO_MANIFEST_DIR").unwrap(), bom.display());
+    println!("cargo:rerun-if-env-changed=CRAFTGUILD_PREPARED");
+}
+''')
+        self.write('src/main.rs', '''use std::io::Write;
+fn main() { std::io::stdout().write_all(include_bytes!(env!("FIXTURE_SBOM"))).unwrap(); }
+''')
+        self.write('evidence.py', '''import hashlib,json,pathlib
+data = {"manifest": hashlib.sha256(pathlib.Path("Cargo.toml").read_bytes()).hexdigest()}
+pathlib.Path(".craftguild/derived/release.json").write_text(json.dumps(data))
+''')
+        config = (self.root / 'craftguild.toml').read_text().replace('schema_version=1', 'schema_version=2', 1)
+        config += '''
+[artifacts.build]
+[[artifacts.build.hooks]]
+id="derived-ownership"
+stage="evidence"
+argv=["python3","evidence.py"]
+inputs=["Cargo.toml","evidence.py"]
+outputs=[".craftguild/derived/release.json"]
+'''
+        self.write('craftguild.toml', config)
+        self.commit('chore: configure build provenance fixture')
+        self.baseline()
+        self.change('feat: add distribution capability')
+        plan = self.release('--apply')
+        self.assertEqual(plan['next'], '0.2.0')
+        before = self.git(self.root, 'status', '--porcelain')
+        notes = {p: p.read_bytes() for p in (self.root / 'docs/releases').iterdir()}
+        build = subprocess.run([str(self.tool), 'build', '--profile', 'debug'],
+                               cwd=self.root, env=self.git.environment,
+                               capture_output=True, text=True)
+        self.assertEqual(build.returncode, 0, build.stderr)
+        receipt = json.loads((self.root / '.craftguild/demo/receipt.json').read_text())
+        self.assertIn('.craftguild/derived/release.json', receipt['prepared']['inputs'])
+        self.assertEqual(receipt['prepared']['build']['version'], '0.2.0')
+        self.assertEqual(before, self.git(self.root, 'status', '--porcelain'))
+        replay = self.release('--apply')
+        self.assertTrue(replay['prepared'])
+        self.assertEqual(replay['next'], '0.2.0')
+        self.assertEqual(notes, {p: p.read_bytes() for p in (self.root / 'docs/releases').iterdir()})
+        self.assertEqual(before, self.git(self.root, 'status', '--porcelain'))
+
     def test_breaking_footers_and_invalid_message(self):
         self.baseline()
         for token in ['BREAKING CHANGE', 'BREAKING-CHANGE']:

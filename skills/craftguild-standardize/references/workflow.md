@@ -53,6 +53,30 @@ reimplement common source measurement, dependency or ORM logic. For ordinary
 language checks, configure a Rust/npm adapter with concrete test/lint/format/type
 commands. Missing tools or an empty argv are failures.
 
+## Source-development execution
+
+For a request that includes build orchestration, use the packaged
+`assets/execution` entry and schema 2 declarations described by the
+[execution contract](orchestration.md). Copy the complete verified entry, including
+its descriptor and vendored bundle, into the selected repository. Use a real fixed
+revision for released adoption or explicitly identify a source export for local
+development. Keep toolchain requirements separate from consumer-library MSRV.
+
+Map product operations to prerequisite/prepare/evidence/verify argv hooks with
+declared inputs and fresh outputs. Let the engine own context resolution, assets,
+dependency inclusion, seals, compilation, verification and receipts. Do not retain
+a product Rust adapter or hide that common sequence in a hook. Preserve platform,
+ABI, ownership/reproduction, language and public CLI gates. Configure ordinary
+test/check preparation separately from explicit acceptance; cached ownership
+conversion belongs under `.craftguild`, not in tracked source.
+
+Use the shared resolver for build/install and retain public aliases/selectors.
+Install copies only a matching verified output and must fail without acquiring
+an engine or invoking a compiler. Keep source inventories/hashes in local seals
+and receipts, outside consumer SBOM metadata. Verify failure/cancellation rollback,
+offline help/version/machine JSON/exact SBOM, and release reapplication after a
+build refresh before claiming completion.
+
 ## Apply and verify
 
 Add a versioned `craftguild.toml`, short common AGENTS.md reference block and

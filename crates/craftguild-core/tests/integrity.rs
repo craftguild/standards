@@ -15,10 +15,14 @@ fn info() -> BuildInfo {
 }
 
 fn prepared(root: &std::path::Path) -> Prepared {
+    prepared_schema(root, 2)
+}
+
+fn prepared_schema(root: &std::path::Path, schema_version: u32) -> Prepared {
     std::fs::create_dir(root.join("src")).unwrap();
     std::fs::write(root.join("src/main.rs"), "fn main() {}\n").unwrap();
     let mut p = Prepared {
-        schema_version: 1,
+        schema_version,
         build: info(),
         features: vec![],
         inputs: BTreeMap::from([(
@@ -37,6 +41,44 @@ fn prepared(root: &std::path::Path) -> Prepared {
     p.sbom_sha256 = paths::digest(&bytes);
     std::fs::write(root.join("bom.json"), bytes).unwrap();
     p
+}
+
+#[test]
+fn consumer_sbom_omits_source_ledger_while_local_seal_still_checks_it() {
+    let root = tempfile::tempdir().unwrap();
+    let p = prepared(root.path());
+    let bytes = p.verify(root.path(), &info(), &[]).unwrap();
+    let text = String::from_utf8(bytes).unwrap();
+    for value in [
+        "src/main.rs",
+        "craftguild:inputs",
+        "craftguild:inventories",
+        p.inputs["src/main.rs"].as_str(),
+        &p.input_digest().unwrap(),
+    ] {
+        assert!(
+            !text.contains(value),
+            "Source ledger leaked into SBOM: {value}"
+        );
+    }
+    let local = serde_json::to_string(&p).unwrap();
+    assert!(local.contains("src/main.rs") && local.contains(&p.inputs["src/main.rs"]));
+    std::fs::write(
+        root.path().join("src/main.rs"),
+        "fn main() { println!(\"changed\"); }\n",
+    )
+    .unwrap();
+    assert!(p.verify(root.path(), &info(), &[]).is_err());
+}
+
+#[test]
+fn published_schema_one_seals_remain_readable_with_original_metadata() {
+    let root = tempfile::tempdir().unwrap();
+    let p = prepared_schema(root.path(), 1);
+    let bytes = p.verify(root.path(), &info(), &[]).unwrap();
+    assert!(String::from_utf8(bytes)
+        .unwrap()
+        .contains("craftguild:inputs"));
 }
 
 #[test]

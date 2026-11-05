@@ -39,6 +39,10 @@ tempfile.workspace = true
 semver.workspace = true
 toml_edit.workspace = true
 html5ever = "=0.40.1"
+ctrlc = { version = "=3.5.2", features = ["termination"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "=0.31.3", features = ["signal", "process"] }
 
 [build-dependencies]
 craftguild-cli-build.workspace = true

@@ -34,9 +34,10 @@ def verify(bundle):
         skill = root / 'craftguild-standardize'
         manifest = json.loads((skill / 'bundle.json').read_text())
         actual = {p.relative_to(skill).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-                  for p in skill.rglob('*') if p.is_file() and p.name != 'bundle.json'}
+                  for p in skill.rglob('*') if p.is_file() and p != skill / 'bundle.json'}
         assert actual == manifest['files']
         assert (skill / 'references/standards/quality.md').is_file()
+        assert (skill / 'references/orchestration.md').is_file()
         for path in skill.rglob('*.md'):
             text = re.sub(r'```.*?```', '', path.read_text(), flags=re.S)
             for target in re.findall(r'\[[^\]]*\]\(([^)]+)\)', text):
@@ -52,6 +53,10 @@ def verify(bundle):
             assert not result.stderr
             if args == ['sbom']:
                 assert json.loads(result.stdout)['specVersion'] == '1.5'
+        entry = skill / 'assets/execution'
+        result = subprocess.run([os.sys.executable, str(entry / 'launcher.py'), 'setup'],
+                                cwd=root, capture_output=True, check=True)
+        assert result.stdout.strip()
     print('PASS: standalone skill manifest, local rules, links and offline executable')
 
 

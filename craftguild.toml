@@ -6,7 +6,7 @@ id = "standards"
 initial_version = "0.1.0"
 tag_prefix = "v"
 notes = "docs/releases"
-paths = ["Cargo.toml", "Cargo.lock", "package.json", "package-lock.json", "crates", "Makefile", "scripts", "adapters", "spec", "conformance", "docs", "skills", "assets", "schemas", "README.md", "craftguild.toml", ".github"]
+paths = ["Cargo.toml", "Cargo.lock", "package.json", "package-lock.json", "crates", "Makefile", "scripts", "templates", "adapters", "spec", "conformance", "docs", "skills", "assets", "schemas", "README.md", "craftguild.toml", ".github"]
 [[releases.cargo]]
 manifest = "Cargo.toml"
 lockfile = "Cargo.lock"
@@ -58,6 +58,16 @@ reason = "Integration tests run only by Cargo test"
 pattern = "scripts/*.py"
 role = "implementation"
 reason = "Build, install and repository verification tools"
+
+[[sources]]
+pattern = "templates/launcher.py"
+role = "implementation"
+reason = "Standalone pinned entry verification and engine dispatch"
+
+[[sources]]
+pattern = "templates/make/common.mk"
+role = "implementation"
+reason = "Distributed common Make entry delegating to the verified engine"
 
 [[sources]]
 pattern = "scripts/tests/**"

@@ -1,49 +1,44 @@
 #!/usr/bin/env python3
-"""Install an already-built artifact; never execute build tools or infer a compiler."""
+"""Dispatch copy-only installation through an already-built verified engine."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
-import shutil
+import subprocess
 import sys
 
 
-def install(root, bindir, destdir, target_dir, target):
-    record = root / '.craftguild/craftguild-standards/prepared.json'
+def install(root, bindir, destdir, target_dir, target, profile=None):
+    root = root.resolve()
+    record = root / '.craftguild/craftguild-standards/receipt.json'
     if not record.is_file():
-        raise ValueError('No prepared build found. Run make build first.')
-    info = json.loads(record.read_text())['build']
-    selected = target or info['target']
-    if selected != info['target']:
-        raise ValueError('TARGET differs from the prepared build. Run make build TARGET=... first.')
-    build_dir = Path(target_dir)
-    if not build_dir.is_absolute():
-        build_dir = root / build_dir
-    binary = build_dir / selected / 'release/craftguild-standards'
-    if not binary.is_file():
-        raise ValueError(f'Built executable missing: {binary}. Run make build first.')
-    directory = Path(bindir)
-    if not directory.is_absolute():
-        raise ValueError('BINDIR must be absolute (DESTDIR provides a staging root).')
-    if destdir:
-        directory = Path(destdir) / directory.relative_to('/')
-    directory.mkdir(parents=True, exist_ok=True)
-    destination = directory / binary.name
-    shutil.copyfile(binary, destination)
-    destination.chmod(0o755)
-    print(destination)
+        raise ValueError('No verified engine found. Run make build without privileges first.')
+    receipt = json.loads(record.read_text())
+    binary = Path(receipt['context']['output'])
+    if not binary.is_file() or binary.is_symlink():
+        raise ValueError('Verified engine missing. Run make build without privileges first.')
+    digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+    if receipt.get('protocol') != 'craftguild-execution-1' or receipt['outputs'] != {binary.name: digest}:
+        raise ValueError('Engine integrity check failed. Run make build without privileges first.')
+    argv = [str(binary), 'install', '--bindir', bindir, '--destdir', destdir]
+    for flag, value in [('target-dir', target_dir), ('profile', profile), ('target', target)]:
+        if value:
+            argv += ['--' + flag, value]
+    subprocess.run(argv, cwd=root, check=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bindir', default='/usr/local/bin')
     parser.add_argument('--destdir', default='')
-    parser.add_argument('--target-dir', default='target')
+    parser.add_argument('--target-dir')
     parser.add_argument('--target', default='')
+    parser.add_argument('--profile')
     args = parser.parse_args()
     try:
         install(Path(__file__).resolve().parent.parent, **vars(args))
-    except (ValueError, OSError, KeyError) as error:
+    except (ValueError, OSError, KeyError, subprocess.SubprocessError) as error:
         print(f'Install failed: {error}', file=sys.stderr)
         return 1
     return 0

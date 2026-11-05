@@ -8,14 +8,12 @@ from pathlib import Path
 import shutil
 import tarfile
 import tempfile
+from package_entry import package as package_entry
 
 
 def package(root, destination):
-    record = json.loads((root / '.craftguild/craftguild-standards/prepared.json').read_text())
-    # Accept only the configured built target, never a bootstrap executable.
-    binary = root / 'target' / record['build']['target'] / 'release/craftguild-standards'
-    if not binary.is_file():
-        raise ValueError('Run make build before packaging the skill.')
+    receipt = json.loads((root / '.craftguild/craftguild-standards/receipt.json').read_text())
+    record = receipt['prepared']
     with tempfile.TemporaryDirectory(prefix='craftguild-skill-') as temporary:
         skill = Path(temporary) / 'craftguild-standardize'
         shutil.copytree(root / 'skills/craftguild-standardize', skill)
@@ -23,6 +21,10 @@ def package(root, destination):
         shutil.copytree(root / 'schemas', skill / 'schemas')
         shutil.copytree(root / 'assets/fonts', skill / 'assets/fonts')
         shutil.copytree(root / 'conformance', skill / 'conformance')
+        shutil.copy2(root / 'docs/design/orchestration.md', skill / 'references/orchestration.md')
+        entry = skill / 'assets/execution'
+        package_entry(root, entry)
+        binary = entry / 'bundle/bin/craftguild-standards'
         bundled = skill / 'assets/bin/craftguild-standards'
         bundled.parent.mkdir(parents=True)
         shutil.copy2(binary, bundled)

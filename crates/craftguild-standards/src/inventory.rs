@@ -1,14 +1,17 @@
 //! Git inventories include untracked sources and refuse unclassified executable code.
 
-use crate::{
-    command,
-    config::{Role, Source},
-};
+use crate::config::{Role, Source};
 use craftguild_core::{paths, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 pub fn files(root: &Path, changed: Option<&str>) -> Result<BTreeSet<String>> {
+    let root = root.canonicalize()?;
+    let entry = std::fs::symlink_metadata(root.join(".git"))
+        .map_err(|_| "Quality inventory requires Git at the explicit repository root")?;
+    if entry.file_type().is_symlink() || !(entry.is_file() || entry.is_dir()) {
+        return Err("Invalid explicit-root Git entry".into());
+    }
     let mut args = vec![
         "git".into(),
         "ls-files".into(),
@@ -17,7 +20,7 @@ pub fn files(root: &Path, changed: Option<&str>) -> Result<BTreeSet<String>> {
         "--exclude-standard".into(),
         "-z".into(),
     ];
-    let mut names = decode(command::capture(root, &args)?)?;
+    let mut names = decode(git(&root, &args)?)?;
     if let Some(base) = changed {
         if base.is_empty() || base.starts_with('-') {
             return Err("Expected a Git revision, not an option".into());
@@ -30,9 +33,9 @@ pub fn files(root: &Path, changed: Option<&str>) -> Result<BTreeSet<String>> {
             base.into(),
             "--".into(),
         ];
-        let mut delta = decode(command::capture(root, &args)?)?;
-        delta.extend(decode(command::capture(
-            root,
+        let mut delta = decode(git(&root, &args)?)?;
+        delta.extend(decode(git(
+            &root,
             &[
                 "git".into(),
                 "ls-files".into(),
@@ -45,9 +48,36 @@ pub fn files(root: &Path, changed: Option<&str>) -> Result<BTreeSet<String>> {
     }
     names.retain(|name| root.join(name).exists());
     for name in &names {
-        paths::owned(root, name)?;
+        paths::owned(&root, name)?;
     }
     Ok(names)
+}
+
+fn git(root: &Path, argv: &[String]) -> Result<Vec<u8>> {
+    let mut runner = crate::execution_process::Runner::default();
+    runner.unset_env.extend(
+        [
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_COMMON_DIR",
+            "GIT_INDEX_FILE",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        ]
+        .map(str::to_owned),
+    );
+    let mut command = vec![
+        "git".into(),
+        "--no-optional-locks".into(),
+        "-c".into(),
+        "core.fsmonitor=false".into(),
+        "--git-dir".into(),
+        root.join(".git").to_string_lossy().into(),
+        "--work-tree".into(),
+        root.to_string_lossy().into(),
+    ];
+    command.extend_from_slice(&argv[1..]);
+    runner.capture(root, &command)
 }
 
 fn decode(bytes: Vec<u8>) -> Result<BTreeSet<String>> {

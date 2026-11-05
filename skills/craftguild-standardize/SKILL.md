@@ -11,6 +11,11 @@ normative contracts relevant to the request. Run the bundled standards executabl
 an installed skill bundle includes its corresponding rules and tool, so a sibling
 standards checkout is unnecessary.
 
+Source-development bundles additionally carry `assets/execution` and the
+[execution contract](references/orchestration.md). This is an unreleased protocol
+extension, not functionality available from the published v0.1.0 revision. Use the
+bundle's matching engine and entry files together; never invent a public pin.
+
 Inspect repository instructions, design authorities, dirty work, CLI/machine
 contracts and existing required checks before changing files. Classify proposed
 changes against the request. Keep unresolved design, ownership, private-data or

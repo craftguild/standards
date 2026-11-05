@@ -1,6 +1,7 @@
 //! Selected Cargo runtime graph: target-filtered, no development/build/proc-macro edges.
 
-use crate::{command, config::Artifact};
+use crate::config::Artifact;
+use crate::execution_process::Runner;
 use craftguild_core::Result;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -19,6 +20,7 @@ pub struct Package {
     pub version: String,
     pub manifest_path: PathBuf,
     pub source: Option<String>,
+    pub license: Option<String>,
     pub targets: Vec<Target>,
 }
 
@@ -29,6 +31,7 @@ pub struct Target {
 }
 
 pub struct Graph {
+    pub license: Option<String>,
     pub version: String,
     pub features: Vec<String>,
     pub components: Vec<Value>,
@@ -57,7 +60,11 @@ pub fn flags(a: &Artifact, target: &str) -> Vec<String> {
 }
 
 pub fn resolve(root: &Path, a: &Artifact, target: &str) -> Result<Graph> {
-    let metadata: Metadata = serde_json::from_slice(&command::capture(
+    resolve_with(root, a, target, &Runner::default())
+}
+
+pub fn resolve_with(root: &Path, a: &Artifact, target: &str, runner: &Runner) -> Result<Graph> {
+    let metadata: Metadata = serde_json::from_slice(&runner.capture(
         root,
         &[
             "cargo".into(),
@@ -94,13 +101,14 @@ pub fn resolve(root: &Path, a: &Artifact, target: &str) -> Result<Graph> {
         ]
         .map(str::to_owned),
     );
-    let tree = String::from_utf8(command::capture(root, &argv)?)?;
+    let tree = String::from_utf8(runner.capture(root, &argv)?)?;
     parse(root, a, &metadata, &tree)
 }
 
 fn parse(root: &Path, a: &Artifact, metadata: &Metadata, tree: &str) -> Result<Graph> {
     let root = root.canonicalize()?;
     let mut graph = Graph {
+        license: None,
         version: String::new(),
         features: vec![],
         components: vec![],
@@ -152,14 +160,23 @@ fn parse(root: &Path, a: &Artifact, metadata: &Metadata, tree: &str) -> Result<G
             return Err("Invalid Cargo tree nesting".into());
         }
         if depth == 0 {
-            if package.name != a.package
-                || !package
-                    .targets
-                    .iter()
-                    .any(|t| t.name == a.command && t.kind.iter().any(|k| k == "bin"))
-            {
-                return Err("Artifact command must select a real binary in its package".into());
+            let library = a.build.as_ref().and_then(|build| build.library.as_ref());
+            let valid_target = package.targets.iter().any(|t| match library {
+                Some(library) => {
+                    t.name == library.name
+                        && t.kind
+                            .iter()
+                            .any(|k| matches!(k.as_str(), "lib" | "rlib" | "cdylib" | "staticlib"))
+                }
+                None => t.name == a.command && t.kind.iter().any(|k| k == "bin"),
+            });
+            if package.name != a.package || !valid_target {
+                return Err(
+                    "Artifact must select a real binary or declared library target in its package"
+                        .into(),
+                );
             }
+            graph.license = package.license.clone();
             graph.version = package.version.clone();
             graph.features = features
                 .split(',')
@@ -177,6 +194,9 @@ fn parse(root: &Path, a: &Artifact, metadata: &Metadata, tree: &str) -> Result<G
                 .insert(id.clone());
             let mut component = json!({"type":"library", "bom-ref": id,
                 "name":package.name, "version":package.version});
+            if let Some(license) = &package.license {
+                component["licenses"] = json!([{"expression":license}]);
+            }
             if package.source.is_some() {
                 component["purl"] = json!(package_ref(package));
             }
@@ -199,6 +219,20 @@ fn parse(root: &Path, a: &Artifact, metadata: &Metadata, tree: &str) -> Result<G
             .local_inputs
             .insert(path.to_str().ok_or("Non-UTF8 manifest")?.into());
         let dir = p.manifest_path.parent().unwrap();
+        // Path dependencies can inherit pins/version from a nested workspace.
+        // Capture those manifests without ever walking outside the explicit root.
+        for ancestor in dir.ancestors().take_while(|p| p.starts_with(&root)) {
+            let manifest = ancestor.join("Cargo.toml");
+            if manifest.is_file() {
+                graph.local_inputs.insert(
+                    manifest
+                        .strip_prefix(&root)?
+                        .to_str()
+                        .ok_or("Non-UTF8 workspace manifest")?
+                        .into(),
+                );
+            }
+        }
         for name in ["build.rs", ".cargo/config.toml", ".cargo/config"] {
             if dir.join(name).is_file() {
                 graph.local_inputs.insert(

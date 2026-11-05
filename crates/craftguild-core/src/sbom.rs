@@ -72,15 +72,25 @@ pub fn validate(data: &[u8]) -> crate::Result<Value> {
     Ok(bom)
 }
 
-/// The shared build identity and seal digest use standard CycloneDX properties.
+/// Legacy schema 1 properties, retained for reading existing sealed artifacts.
+/// New producers use `identity_properties` and keep the source ledger local.
 pub fn properties(
     info: &crate::BuildInfo,
     features: &[String],
     seal: &str,
 ) -> crate::Result<Value> {
+    let mut properties = identity_properties(info, features)?;
+    properties
+        .as_array_mut()
+        .expect("Identity properties are an array")
+        .push(json!({"name": "craftguild:inputs-sha256", "value": seal}));
+    Ok(properties)
+}
+
+/// Consumer-facing identity excludes the developer's local source input ledger.
+pub fn identity_properties(info: &crate::BuildInfo, features: &[String]) -> crate::Result<Value> {
     Ok(json!([
         {"name": "craftguild:build", "value": serde_json::to_string(info)?},
-        {"name": "craftguild:features", "value": serde_json::to_string(features)?},
-        {"name": "craftguild:inputs-sha256", "value": seal}
+        {"name": "craftguild:features", "value": serde_json::to_string(features)?}
     ]))
 }

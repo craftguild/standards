@@ -30,8 +30,14 @@ impl Prepared {
         ))?))
     }
 
-    /// Standard properties expose the exact input and asset identities to consumers.
+    /// Schema 2 separates consumer SBOM identity from the local source input ledger.
     pub fn properties(&self) -> crate::Result<serde_json::Value> {
+        match self.schema_version {
+            2 => return sbom::identity_properties(&self.build, &self.features),
+            1 => {}
+            _ => return Err("Unsupported prepared seal schema".into()),
+        }
+        // Preserve validation of already-published schema 1 artifacts.
         let mut properties = sbom::properties(&self.build, &self.features, &self.input_digest()?)?;
         let values = properties.as_array_mut().expect("Properties are an array");
         values.push(serde_json::json!({"name":"craftguild:inputs", "value":serde_json::to_string(&self.inputs)?}));
@@ -47,7 +53,7 @@ impl Prepared {
         features: &[String],
     ) -> crate::Result<Vec<u8>> {
         self.build.validate()?;
-        if self.schema_version != 1 || self.inputs.is_empty() {
+        if !matches!(self.schema_version, 1 | 2) || self.inputs.is_empty() {
             return Err("Invalid or empty prepared input record".into());
         }
         if &self.build != expected || self.features != features {

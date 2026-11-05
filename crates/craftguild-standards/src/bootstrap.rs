@@ -2,19 +2,6 @@
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args: Vec<_> = std::env::args().skip(1).collect();
-    match args.split_first() {
-        Some((command, rest)) if command == "banner" => {
-            craftguild_standards::banner::run(rest, &mut std::io::stdout().lock())
-        }
-        Some((command, rest)) if command == "prepare" || command == "build" => {
-            craftguild_standards::distribution::run(rest, command == "build")
-        }
-        Some((command, rest)) if command == "check" => {
-            craftguild_standards::quality::run(rest, &mut std::io::stdout().lock())
-        }
-        Some((command, rest)) if command == "release" => {
-            craftguild_standards::release::run(rest, &mut std::io::stdout().lock())
-        }
-        _ => Err("Bootstrap usage: banner | prepare | build | check | release".into()),
-    }
+    let (command, rest) = args.split_first().ok_or("Bootstrap usage: build | prepare | install | test | check | acceptance | release | banner | protocol")?;
+    craftguild_standards::dispatch::run(command, rest, &mut std::io::stdout().lock())
 }

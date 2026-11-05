@@ -4,6 +4,10 @@ Shared CLI presentation, artifact SBOM preparation, quality checks and developme
 contracts for Craftguild products. Language-neutral rules are backed by Rust and
 npm adapters and the `craftguild-standardize` agent skill.
 
+This source branch also implements the unreleased build execution protocol for
+ADR 0002. Its schema 2 configuration and entry bundle are separate from published
+v0.1.0; package versions have not changed.
+
 ## Quick start
 
 With the [build tools](#build-requirements) available, build from source:
@@ -52,6 +56,7 @@ in Cargo.lock. `make install` only copies a built binary and supports `PREFIX`,
 craftguild-standards banner standards --output assets/banner.txt
 craftguild-standards banner standards --check assets/banner.txt
 craftguild-standards build --artifact standards
+craftguild-standards build --artifact standards --profile debug
 craftguild-standards check --json
 craftguild-standards release --json
 ```
@@ -60,6 +65,8 @@ Configure artifacts, source roles, language adapters and repository checks in
 [`craftguild.toml`](craftguild.toml). Read the [contracts](spec/README.md),
 [architecture](docs/design/architecture.md), [configuration](docs/design/configuration.md)
 and [skill](skills/craftguild-standardize/SKILL.md).
+The source-development [execution guide](docs/guides/orchestration.md) explains
+the pinned Make/launcher bundle, hooks, receipts and copy-only installation.
 Use `make release RELEASE_ARGS=--json` to preview version updates and generated
 notes, then `make release` to prepare them locally. See the
 [release guide](docs/guides/releases.md) for groups, signed history and publication.
@@ -82,6 +89,8 @@ Use `check --changed --json` after implementation edits to narrow source measure
 - SeaORM inspection parses syntax and macro token identifiers. It does not perform
   compiler name/type resolution or expand arbitrary external macros.
 - Unsupported conditional test separation is reported as unmeasured.
+- Entry bundles contain a host-specific engine. Other hosts require a matching
+  verified bundle; ordinary builds do not install toolchains or SDKs.
 - Release acceptance and publication evidence remain requirements until recorded
   against the final source; a local focused test is not a platform certification.
 
