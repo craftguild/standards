@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "group": "standards",
+  "config_hash": "00586ffb3089fd6b6010f2c96173cd3d1205b509980612024ecb83f39eb3d7c8",
+  "head": "0337ac47f308a9892e0a94fa2d6781149bc7deec",
+  "base": "v0.1.0",
+  "current": "0.1.0",
+  "next": "0.2.0",
+  "tag": "v0.2.0",
+  "bump": "minor",
+  "prepared": false,
+  "receipt_path": "docs/releases/v0.2.0.json",
+  "notes": "# v0.2.0\n\nGroup: `standards`\n\nCompare: `v0.1.0` → `0337ac47f308a9892e0a94fa2d6781149bc7deec`\n\n## Changes\n\n- feat: centralize verified build execution and distribution (266b14893251e5fc0ec5879f345ec64cfc0cee70)\n- fix: align public examples and release bundle validation (9a7e2d596bd7baf4ba160f1a8f8c8ea4ba3afd5d)\n- fix: isolate release example validation roots (0337ac47f308a9892e0a94fa2d6781149bc7deec)\n",
+  "changes": [
+    {
+      "path": "Cargo.toml",
+      "before": "a5f77c72f076d0fe6f7a08c8e9589b3d35b2e53384e9e8f193cc0f644e6fa14a",
+      "after": "18f61290ce9b13a0c6eb367e33e39842dded7afda2d7d904ab1e86fbb55f2d55"
+    },
+    {
+      "path": "Cargo.lock",
+      "before": "7856424f6ea5a7eccfc48a15d7dc9d3cad17acaa3926710abe5f3de32cb0f2ae",
+      "after": "346a51a34c9261a1c225824c3b06546b76d1b1b539c8380c6240d36beb5d7e4b"
+    },
+    {
+      "path": "package.json",
+      "before": "75129fe61d745c3923367fbcae63c756fc4fbaf714ffb47ff84d2328651cae5d",
+      "after": "fd1aca069603aaf50dd577df4211022b181e2397e0edf0421114249714329639"
+    },
+    {
+      "path": "package-lock.json",
+      "before": "ee2844d4d6eb36bb2713e09ab00081a58faa38f7933dedf61a84e0c34e688f10",
+      "after": "d5d0f647f7ad29d853ffd75aa1e2fa967dae6d96179d104f83dd7324e53d1124"
+    },
+    {
+      "path": "docs/releases/v0.2.0.md",
+      "before": null,
+      "after": "ec9c7d87d3bff9faa9679355647c88a8b2ddd240bd674886d42ea2ede7d9ee70"
+    }
+  ]
+}

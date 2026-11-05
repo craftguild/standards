@@ -1,14 +1,14 @@
 {
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3"
+  },
   "name": "craftguild-standards-adapters",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "node --test adapters/tests/*.test.cjs",
     "lint": "node --check adapters/npm-tests.cjs",
+    "test": "node --test adapters/tests/*.test.cjs",
     "typecheck": "tsc --allowJs --checkJs --noEmit --module commonjs --target es2022 --types node adapters/npm-tests.cjs"
   },
-  "devDependencies": {
-    "typescript": "5.9.3",
-    "@types/node": "24.10.0"
-  }
+  "version": "0.2.0"
 }
