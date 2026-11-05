@@ -4,9 +4,10 @@ Shared CLI presentation, artifact SBOM preparation, quality checks and developme
 contracts for Craftguild products. Language-neutral rules are backed by Rust and
 npm adapters and the `craftguild-standardize` agent skill.
 
-This source branch also implements the unreleased build execution protocol for
-ADR 0002. Its schema 2 configuration and entry bundle are separate from published
-v0.1.0; package versions have not changed.
+The build engine implements ADR 0002 with configuration schema 2 and a compatible
+Make/launcher bundle. Published v0.1.0 does not include this engine. The normative
+rules baseline (`standards_version = "0.1.0"`), package versions, prepared seals
+and entry protocol have separate compatibility identifiers.
 
 ## Quick start
 
@@ -65,7 +66,7 @@ Configure artifacts, source roles, language adapters and repository checks in
 [`craftguild.toml`](craftguild.toml). Read the [contracts](spec/README.md),
 [architecture](docs/design/architecture.md), [configuration](docs/design/configuration.md)
 and [skill](skills/craftguild-standardize/SKILL.md).
-The source-development [execution guide](docs/guides/orchestration.md) explains
+The [execution guide](docs/guides/orchestration.md) explains
 the pinned Make/launcher bundle, hooks, receipts and copy-only installation.
 Use `make release RELEASE_ARGS=--json` to preview version updates and generated
 notes, then `make release` to prepare them locally. See the
@@ -91,6 +92,8 @@ Use `check --changed --json` after implementation edits to narrow source measure
 - Unsupported conditional test separation is reported as unmeasured.
 - Entry bundles contain a host-specific engine. Other hosts require a matching
   verified bundle; ordinary builds do not install toolchains or SDKs.
+- Subprocess execution requires a Unix host. Non-Unix execution is refused before
+  spawning tools; consumer-library compatibility is a separate contract.
 - Release acceptance and publication evidence remain requirements until recorded
   against the final source; a local focused test is not a platform certification.
 

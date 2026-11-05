@@ -12,7 +12,7 @@ as authority. Independent artifacts use distinct groups. See
 [release design](releases.md) and [operation](../guides/releases.md).
 
 The versioned repository configuration is `craftguild.toml`. Published v0.1.0 uses
-schema 1; source development also supports the schema 2 execution extension.
+schema 1; the current engine also supports the schema 2 execution extension.
 Unknown fields, unknown adapters/policies, unsafe paths, overlapping source roles,
 empty checks and absent required tools are errors. Paths are repository-relative;
 absolute paths, `..` traversal and escaping symlinks are forbidden.
@@ -67,9 +67,10 @@ The CLI `--target` selects the Rust compilation target and overrides a Rust
 artifact's configured target. Frontend targets come from their artifact settings
 or default to `browser`; selecting only a frontend does not probe Rust tools.
 
-Source development additionally defines schema 2 orchestration in the
+Schema 2 orchestration is defined in the
 [execution contract](orchestration.md). Schema 1 rejects its artifact `build`
-tables. This extension does not identify an available public engine release.
+tables. Engine package versions and the normative baseline are separate;
+published v0.1.0 does not provide this extension.
 
 `bundle` requires `root` (bundler working-root path, or `.` for the repository root), `lockfile`, `metafile`
 (esbuild JSON), `directory` (exact output tree), and a nonempty build `command`
@@ -86,7 +87,7 @@ file still fails the exact bundle inventory. Supplemental records require `name`
 standards artifact itself records its embedded Small Slant font and validation
 schemas in [supplemental data](../../assets/supplemental.json).
 
-Prepared files live under `.craftguild/<command>/`. Source-development seal schema
+Prepared files live under `.craftguild/<command>/`. Prepared seal schema
 2 keeps source hashes and directory inventories in those local records. The SBOM
 contains shared build identity, effective root features and dependency/component
 evidence, without a source file list, source hashes or an aggregate source-input

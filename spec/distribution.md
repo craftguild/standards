@@ -24,5 +24,5 @@ bootstrap executable to prepare standards' own final SBOM. The final shipped
 executable always includes its verified real SBOM. Runtime `sbom` needs only the
 binary and writes the saved JSON verbatim.
 
-The source-development engine writes prepared seal schema 2 for this separation.
+The current engine writes prepared seal schema 2 for this separation.
 Published v0.1.0 and its schema 1 artifacts remain unchanged and readable.

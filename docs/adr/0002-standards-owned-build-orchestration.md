@@ -3,7 +3,7 @@
 Status: Accepted
 
 Extends [ADR 0001](0001-artifact-identity-and-offline-presentation.md).
-The implementation is source-development work for a later standards release.
+The implementation uses versioned configuration, seals and an entry protocol.
 Product migration and publication remain separate; published v0.1.0 is unchanged.
 
 ## Context
@@ -83,7 +83,7 @@ obtain the matching tool in a repository-local cache. A sibling standards
 checkout, personal absolute paths and mutable remote Makefile includes are not
 prerequisites.
 
-The source-development product entry is:
+The compatible product entry is:
 
 ```makefile
 include standards/execution/make/common.mk
@@ -156,9 +156,9 @@ Implementation must demonstrate:
   boundary and do not cause another version increment.
 
 Keep the published v0.1.0 revision intact. Implement and verify the engine and
-entry bundle for a later release, then migrate products using that pinned
-release. ADR acceptance, engine implementation and product adoption are separate
-steps. The source implementation uses configuration schema 2 and entry protocol
+entry bundle in a compatible release, then migrate products using its pinned
+revision. ADR acceptance, engine implementation and product adoption are separate
+steps. The implementation uses configuration schema 2 and entry protocol
 `craftguild-execution-1`, with real Rust/npm consumers and isolated product pilots.
 Execution contracts are defined in the [design](../design/orchestration.md);
 verification evidence and unexecuted host gates are recorded in `bd` issue

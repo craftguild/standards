@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export a source-development entry bundle around an already verified engine."""
+"""Export an execution entry bundle around an already verified engine."""
 
 import argparse
 import hashlib

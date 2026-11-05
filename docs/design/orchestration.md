@@ -1,7 +1,8 @@
 # Build orchestration
 
-This is the source-development contract for ADR 0002. It is not part of the
-published v0.1.0 bundle. Package versions and release history remain unchanged.
+This is the execution contract for ADR 0002. It is not part of the published
+v0.1.0 bundle. Package versions, the normative rules baseline and execution
+compatibility identifiers are versioned separately.
 
 ## Compatibility
 

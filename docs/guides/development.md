@@ -49,7 +49,7 @@ claim cross-compilation is available on every host. The install entry reads the
 verified receipt and the same output resolver as build. It fails if selectors,
 inputs, SBOM or binary differ, and never probes Rust/npm or bootstraps an engine.
 Build/setup must first run without privileges. See the
-[execution guide](orchestration.md) for source-development consumer entries.
+[execution guide](orchestration.md) for compatible consumer entries.
 
 Package a host-specific, self-contained skill bundle after building:
 
@@ -66,3 +66,15 @@ the skill. Creating the bundle never installs or alters global skills.
 Before publishing, review `python3 scripts/public_files.py`. An explicit
 `--export` writes that inventory to a new directory for fresh public history.
 Ignored private archives and task/connection data never enter that inventory.
+
+For host release assets, first commit and verify the source, then run `make build`.
+The delivery packager requires a clean full-revision native release build:
+
+```sh
+python3 scripts/package_delivery.py --output target/delivery
+```
+
+It creates the executable, consumer SBOM, matching entry/skill archives, release
+metadata and checksums. It invokes existing receipt validation and never builds
+or publishes. CI retains these assets for the exact tested commit; tagging and
+publication remain separate authorized operations.

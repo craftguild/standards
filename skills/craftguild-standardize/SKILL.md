@@ -5,15 +5,15 @@ description: Apply a pinned Craftguild standards version to a requested reposito
 
 # Craftguild Standardize
 
-Use the standards version recorded in `craftguild.toml`. For this release use
-0.1.0. Read the packaged [workflow reference](references/workflow.md) and only the
+Use the normative baseline recorded in `craftguild.toml`, currently 0.1.0.
+Package and engine versions are recorded separately in the bundle build identity. Read the packaged [workflow reference](references/workflow.md) and only the
 normative contracts relevant to the request. Run the bundled standards executable;
 an installed skill bundle includes its corresponding rules and tool, so a sibling
 standards checkout is unnecessary.
 
-Source-development bundles additionally carry `assets/execution` and the
-[execution contract](references/orchestration.md). This is an unreleased protocol
-extension, not functionality available from the published v0.1.0 revision. Use the
+Compatible bundles additionally carry `assets/execution` and the
+[execution contract](references/orchestration.md). This protocol
+extension is not available from the published v0.1.0 revision. Use the
 bundle's matching engine and entry files together; never invent a public pin.
 
 Inspect repository instructions, design authorities, dirty work, CLI/machine

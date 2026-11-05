@@ -53,7 +53,7 @@ reimplement common source measurement, dependency or ORM logic. For ordinary
 language checks, configure a Rust/npm adapter with concrete test/lint/format/type
 commands. Missing tools or an empty argv are failures.
 
-## Source-development execution
+## Build execution
 
 For a request that includes build orchestration, use the packaged
 `assets/execution` entry and schema 2 declarations described by the

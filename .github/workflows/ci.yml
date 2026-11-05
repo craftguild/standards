@@ -1,7 +1,7 @@
 name: Conformance
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
 permissions:
   contents: read
@@ -35,8 +35,17 @@ jobs:
       - run: make build
       - run: make acceptance
       - run: python3 scripts/verify_examples.py
+      - run: python3 scripts/package_entry.py --output target/execution-entry
+      - run: python3 scripts/tests/verify_execution.py target/execution-entry
+      - run: python3 scripts/tests/verify_packaging.py
       - run: python3 scripts/package_skill.py --output target/craftguild-standardize.tar.gz
       - run: python3 scripts/verify_skill.py target/craftguild-standardize.tar.gz
+      - run: python3 scripts/package_delivery.py --output target/delivery
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: delivery-${{ runner.os }}-${{ runner.arch }}
+          path: target/delivery/*
+          if-no-files-found: error
   consumer-msrv:
     runs-on: ubuntu-latest
     steps:
@@ -44,4 +53,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: 1.85.0
-      - run: cargo check --locked -p craftguild-cli -p craftguild-cli-build
+      - run: cargo check --locked -p craftguild-cli -p craftguild-core -p craftguild-cli-build

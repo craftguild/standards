@@ -19,7 +19,7 @@ Build metadata is captured in the application's build script and has a small
 structured representation usable by generator metadata and machine version paths.
 Presentation never launches tools and never owns application argument grammar.
 
-The source-development [orchestration contract](orchestration.md) defines schema 2,
+The [orchestration contract](orchestration.md) defines schema 2,
 resolved execution context, bounded hooks, technical history, output publication
 and the standalone entry protocol for ADR 0002. Published v0.1.0 remains unchanged.
 
@@ -31,7 +31,7 @@ validates CycloneDX, and invokes the compiler with the prepared seal. Build-scri
 verification uses the same identity and seal definitions. Missing, changed or
 unknown required inputs fail. A build script never invokes Cargo recursively.
 
-Source-development seal schema 2 separates developer integrity evidence from the
+Prepared seal schema 2 separates developer integrity evidence from the
 consumer SBOM. Source inventories and hashes remain in local seals and receipts;
 the SBOM contains dependency/component evidence and artifact identity, without
 the source ledger or its aggregate digest. Existing schema 1 artifacts retain

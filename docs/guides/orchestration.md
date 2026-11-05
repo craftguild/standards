@@ -1,9 +1,9 @@
-# Source-development build execution
+# Build execution
 
-This branch implements ADR 0002 for a later release. Configuration schema 2,
-prepared seal schema 2 and the `craftguild-execution-1` entry protocol are distinct
-from package versions and the published v0.1.0 revision. The
-[execution contract](../design/orchestration.md) defines all fields and precedence.
+The engine implements ADR 0002. Configuration schema 2, prepared seal schema 2 and
+the `craftguild-execution-1` entry protocol are distinct from package versions and
+the normative 0.1.0 baseline. The published v0.1.0 revision has no execution entry.
+The [execution contract](../design/orchestration.md) defines all fields and precedence.
 
 Subprocess execution currently requires a Unix host. Non-Unix execution is refused
 before spawning tools; Windows engine qualification is separate from consumer
@@ -19,9 +19,10 @@ python3 scripts/package_entry.py --output target/execution-entry
 Packaging verifies the engine receipt, sealed inputs and exact embedded SBOM.
 Its common receipt verifier includes file additions within sealed directories;
 rebuild before packaging when any sealed input or inventory changes.
-The export identifies local source provenance by digest; it does not claim a
-released revision. Its full source inventory remains under `.craftguild` in the
-producer checkout. Keep the complete export together when copying it to a
+The export identifies source provenance by digest. A release bundle additionally
+records its clean build's full Git revision; a local export never invents a public
+revision. Its full source inventory remains under `.craftguild` in the producer
+checkout. Keep the complete export together when copying it to a
 standalone consumer as `standards/execution`:
 
 ```makefile
@@ -68,3 +69,17 @@ adoption or publication.
 Use `acceptance --gate ID` (or `make acceptance ACCEPTANCE_ARGS="--gate ID"`) when a public
 alias must run only one declared acceptance gate. Ordinary test/check entries do
 not include acceptance commands.
+
+## Published host bundles
+
+Select an explicit release and host target from the repository's release assets.
+Verify its `SHA256SUMS-<target>.txt`, then extract the execution archive and keep
+the complete `craftguild-execution` directory together. The matching release JSON
+records the full source revision and entry bundle digest. Pin consumer libraries
+to that full HTTPS Git revision, and retain the exact bundle descriptor in the
+consumer checkout. Do not use a moving branch or an implicit latest release.
+
+The skill archive carries the same entry plus the rules and host executable.
+Release assets omit the producer's source-file ledger and local receipts. Host
+qualification applies only where the recorded CI/acceptance ran; a cross-target
+binary or bundle name alone is not a runtime qualification.

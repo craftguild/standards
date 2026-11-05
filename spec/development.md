@@ -15,7 +15,7 @@ select the matching build and install artifact. Privileged install never runs
 Cargo/npm. Focused development commands remain available. Report unavailable,
 skipped and unexecuted acceptance separately from success.
 
-The source-development execution extension resolves artifact, toolchain, target,
+The versioned execution extension resolves artifact, toolchain, target,
 profile, features and outputs once. `PROFILE=debug` selects debug from preparation
 onward; release remains the default. Make, direct launcher and CI dispatch through
 one compatible pinned engine. Configured prerequisites and bounded argv hooks
