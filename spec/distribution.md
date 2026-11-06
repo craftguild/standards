@@ -26,3 +26,20 @@ binary and writes the saved JSON verbatim.
 
 The current engine writes prepared seal schema 2 for this separation.
 Published v0.1.0 and its schema 1 artifacts remain unchanged and readable.
+
+The ADR 0003 source extension adds opt-in schema 2 standard Rust output layout,
+receipt-backed `package` and declarative POSIX shell `installer` generation.
+Published v0.2.0 remains unchanged. Standard layout fixes all Rust final outputs
+at `<target-dir>/<target-triple>/<profile>/<file>`, including native builds and
+library formats. Explicit Rust output overrides are refused in this mode.
+Frontend locations and configurations without the mode keep their contracts.
+
+Package requires fresh output, clean matching full HEAD, release receipts and the
+owning group's version/target agreement, plus complete seal/SBOM/output validation.
+It emits binaries, consumer SBOMs and target checksums without building or acquiring
+an engine. Download installers verify an exact SHA-256 entry before atomic command
+replacement and use sudo only for destination operations requiring it. Uninstall
+removes only the regular command file and preserves configuration/data. Schema 2
+installer declarations select executable artifacts, their owning release group,
+GitHub repository and safe relative script output. Runtime options select a stable
+version and absolute destination; ordinary checks reject generated script drift.

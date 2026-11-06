@@ -54,3 +54,10 @@ Apply design-baselines before modeling state machines/lifecycles or business lin
 items: record current state plus atomic append-only transition history, and
 Header 1:N Detail ownership/cardinality. Explain justified departures. Adoption
 alone does not authorize changing unrelated domain models.
+
+The ADR 0003 source extension adds `make installer` (`INSTALLER_ARGS`) and
+`make package` (`PACKAGE_ARGS`), forwarding to the engine's same CLI commands.
+Installer checks compare without writing, including during `make check`. Package
+requires an existing verified engine/cache and release receipts; it never runs
+setup or compilers. Published v0.2.0 does not provide this extension. Download
+installation is distinct from the copy-only source-build install contract above.

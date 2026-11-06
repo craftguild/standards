@@ -547,6 +547,15 @@ formats=["cdylib","staticlib","rlib"]
 "#,
     );
     let root = temp.path();
+    let config = std::fs::read_to_string(root.join("craftguild.toml")).unwrap();
+    write(
+        root,
+        "craftguild.toml",
+        config.replace(
+            "schema_version=2",
+            "schema_version=2\nrust_output_layout=\"standard\"",
+        ),
+    );
     let manifest = std::fs::read_to_string(root.join("Cargo.toml"))
         .unwrap()
         .replace("edition='2021'", "edition='2021'\nlicense='MIT'");
@@ -1143,4 +1152,65 @@ fn common_make_defaults_match_direct_build_and_install_with_configured_selectors
     let selected = receipt(root);
     assert_eq!(selected["context"]["profile"], "debug");
     assert!(Path::new(selected["context"]["target_dir"].as_str().unwrap()).ends_with("cli-output"));
+}
+
+#[test]
+fn inferred_install_retains_recorded_explicit_target_layout() {
+    let temp = fixture("[artifacts.build]\noutput=\"{target_path}{profile}/{file}\"\n");
+    let root = temp.path();
+    let host = craftguild_standards::distribution::host(root).unwrap();
+    success(cli(
+        root,
+        &["build", "--target", &host, "--profile", "debug"],
+    ));
+    let explicit = receipt(root);
+    assert_eq!(explicit["context"]["explicit_target"], true);
+    success(cli(
+        root,
+        &["install", "--profile", "debug", "--destdir", "stage"],
+    ));
+    let copied = std::fs::read(root.join("stage/usr/local/bin/demo")).unwrap();
+    assert_eq!(
+        copied,
+        std::fs::read(explicit["context"]["output"].as_str().unwrap()).unwrap()
+    );
+    assert!(!cli(
+        root,
+        &[
+            "install",
+            "--target",
+            "wrong-target",
+            "--profile",
+            "debug",
+            "--destdir",
+            "stage"
+        ]
+    )
+    .status
+    .success());
+    assert_eq!(
+        std::fs::read(root.join("stage/usr/local/bin/demo")).unwrap(),
+        copied
+    );
+    success(cli(root, &["build", "--profile", "debug"]));
+    let native = receipt(root);
+    assert_eq!(native["context"]["explicit_target"], false);
+    success(cli(
+        root,
+        &["install", "--profile", "debug", "--destdir", "stage"],
+    ));
+    assert!(!cli(
+        root,
+        &[
+            "install",
+            "--target",
+            &host,
+            "--profile",
+            "debug",
+            "--destdir",
+            "stage"
+        ]
+    )
+    .status
+    .success());
 }

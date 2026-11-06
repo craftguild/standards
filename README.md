@@ -5,7 +5,9 @@ contracts for Craftguild products. Language-neutral rules are backed by Rust and
 npm adapters and the `craftguild-standardize` agent skill.
 
 The build engine implements ADR 0002 with configuration schema 2 and a compatible
-Make/launcher bundle. Published v0.1.0 does not include this engine. The normative
+Make/launcher bundle. The current source also implements ADR 0003 standard Rust
+outputs, receipt-backed packaging and generated download installers; published
+v0.2.0 does not include that extension. Published v0.1.0 does not include the engine. The normative
 rules baseline (`standards_version = "0.1.0"`), package versions, prepared seals
 and entry protocol have separate compatibility identifiers.
 
@@ -46,6 +48,10 @@ Run `npm ci` in this repository before `make test` or `make check`; the npm adap
 uses the pinned TypeScript parser. The Web examples have their own lockfiles and
 need `npm ci` in their frontend directories before their checks/builds.
 
+Fetch locked Cargo dependencies explicitly with `cargo fetch --locked` before
+building; ordinary builds use offline resolution and do not install dependencies,
+toolchains or SDKs.
+
 Small Slant font data and CycloneDX schemas are pinned and included. No Node.js
 process or font download is needed to generate a banner. Dependencies are locked
 in Cargo.lock. `make install` only copies a built binary and supports `PREFIX`,
@@ -58,6 +64,8 @@ craftguild-standards banner standards --output assets/banner.txt
 craftguild-standards banner standards --check assets/banner.txt
 craftguild-standards build --artifact standards
 craftguild-standards build --artifact standards --profile debug
+craftguild-standards installer --check
+craftguild-standards package --group standards --output target/release-assets
 craftguild-standards check --json
 craftguild-standards release --json
 ```
@@ -68,6 +76,13 @@ Configure artifacts, source roles, language adapters and repository checks in
 and [skill](skills/craftguild-standardize/SKILL.md).
 The [execution guide](docs/guides/orchestration.md) explains
 the pinned Make/launcher bundle, hooks, receipts and copy-only installation.
+The [installer guide](docs/guides/installers.md) explains release packaging and the
+standalone download installer. After publication of this source script, its raw
+URL supports `curl -fsSL <Raw URL> | sh -s --`, with optional `--version X.Y.Z`,
+`--bindir /absolute/path` or `--uninstall`. It requires sh, curl, standard utilities
+and sha256sum or shasum; its default is `$HOME/.local/bin`. It verifies SHA-256
+before atomic replacement and preserves settings on uninstall. This route is
+separate from source-build `make install` and its `/usr/local/bin` default.
 Use `make release RELEASE_ARGS=--json` to preview version updates and generated
 notes, then `make release` to prepare them locally. See the
 [release guide](docs/guides/releases.md) for groups, signed history and publication.

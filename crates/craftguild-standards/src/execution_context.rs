@@ -16,6 +16,8 @@ pub const PROTOCOL: &str = "craftguild-execution-1";
 pub struct Options {
     pub values: BTreeMap<String, String>,
     pub fallback_target: Option<String>,
+    pub fallback_explicit_target: bool,
+    pub standard_layout: bool,
     pub known_host: Option<String>,
     pub known_compiler: Option<String>,
     pub offline: bool,
@@ -90,7 +92,7 @@ impl Context {
             .get("target")
             .or(settings.target)
             .or_else(|| artifact.target.clone());
-        let explicit_target = requested_target.is_some();
+        let explicit_target = requested_target.is_some() || options.fallback_explicit_target;
         let toolchain = options.get("toolchain").or_else(|| build.toolchain.clone());
         if toolchain.as_deref().is_some_and(|s| !identifier(s)) {
             return Err("Invalid named toolchain".into());
@@ -103,7 +105,12 @@ impl Context {
                 .ok_or("No recorded target; build with an installed compiler first")?,
             Kind::Frontend => artifact.target.clone().unwrap_or_else(|| "browser".into()),
         };
-        let settings = build.settings_for(variant.as_deref(), Some(&target), host.as_deref())?;
+        let mut settings =
+            build.settings_for(variant.as_deref(), Some(&target), host.as_deref())?;
+        if options.standard_layout && artifact.kind == Kind::Rust {
+            settings.output = "{target}/{profile}/{file}".into();
+            settings.output_root = crate::build_settings::OutputRoot::TargetDirectory;
+        }
         if !identifier(&target) {
             return Err("Use a named target; custom target files are unsupported".into());
         }

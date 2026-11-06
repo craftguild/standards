@@ -11,6 +11,8 @@ pub struct Config {
     pub schema_version: u32,
     pub standards_version: String,
     pub operations: Option<Vec<crate::operation_config::Operation>>,
+    pub rust_output_layout: Option<crate::installer_config::RustOutputLayout>,
+    pub installers: Option<Vec<crate::installer_config::Installer>>,
     pub artifacts: Vec<Artifact>,
     #[serde(default)]
     pub sources: Vec<Source>,
@@ -175,6 +177,7 @@ impl Config {
     pub fn validate(&self) -> Result<()> {
         crate::operation_config::validate(self)?;
         crate::release::versions::validate(&self.releases)?;
+        crate::installer_config::validate(self)?;
         if !matches!(self.schema_version, 1 | 2)
             || self.standards_version != "0.1.0"
             || self.artifacts.is_empty()

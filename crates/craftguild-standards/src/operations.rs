@@ -38,7 +38,10 @@ pub fn run<W: Write>(
     };
     crate::execution_process::initialize_signals()?;
     let _lock = Lock::acquire(&root)?;
-    let options = Options::default();
+    let options = Options {
+        standard_layout: config.rust_output_layout.is_some(),
+        ..Options::default()
+    };
     let scope = config.artifact(&operation.artifact)?;
     let context = Context::resolve(&root, scope, &options)?;
     let mut scoped = scope.clone();

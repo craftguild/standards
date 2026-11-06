@@ -22,7 +22,8 @@ pub fn run(args: &[String], compile: bool) -> Result<()> {
     crate::execution_process::initialize_signals()?;
     let root = std::env::current_dir()?.canonicalize()?;
     let config = config::load(&root)?;
-    let options = Options::parse(args)?;
+    let mut options = Options::parse(args)?;
+    options.standard_layout = config.rust_output_layout.is_some();
     let selected =
         crate::build_config::artifact_order(&config, options.get("artifact").as_deref())?;
     if options.get("target").is_some() && !selected.iter().any(|a| a.kind == Kind::Rust) {

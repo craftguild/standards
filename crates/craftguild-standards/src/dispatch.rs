@@ -17,6 +17,8 @@ pub fn run(name: &str, args: &[String], output: &mut impl Write) -> Result<()> {
         "banner" => crate::banner::run(args, output),
         "build" | "prepare" => crate::execution::run(args, name == "build"),
         "install" => crate::execution_install::run(args),
+        "installer" => crate::installer::run(args),
+        "package" => crate::package::run(args),
         "check" | "release" | "test" | "acceptance" | "assess" => {
             crate::operations::run(name, args, output, |runner, output| match name {
                 "check" => crate::quality::run_with(args, output, runner),

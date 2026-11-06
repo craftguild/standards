@@ -25,7 +25,7 @@ def run(root, argv, env=None, success=True):
     return result
 
 
-def consumer(root, name, entry):
+def consumer(root, name, entry, standard=False):
     shutil.copytree(ROOT / 'examples' / name, root,
                     ignore=shutil.ignore_patterns('.craftguild', 'target', 'node_modules', '__pycache__'))
     shutil.copytree(entry, root / 'standards')
@@ -49,6 +49,8 @@ def consumer(root, name, entry):
         config = config.replace('input_dirs = ["web/src"]', 'input_dirs = ["web/src", "schemas"]')
     else:
         config = config.replace('inputs = ["assets/banner.txt"]', 'inputs = ["assets/banner.txt"]\ninput_dirs = ["schemas"]')
+    if standard:
+        config = config.replace('schema_version = 2', 'schema_version = 2\nrust_output_layout = "standard"', 1)
     (root / 'craftguild.toml').write_text(config)
     (root / 'Makefile').write_text('include standards/make/common.mk\n')
 
@@ -80,7 +82,7 @@ def verify(entry):
     with tempfile.TemporaryDirectory(prefix='craftguild-real-consumers-') as temporary:
         base = Path(temporary).resolve()
         rust = base / 'rust'
-        consumer(rust, 'rust-only', entry)
+        consumer(rust, 'rust-only', entry, standard=True)
         # Install may not acquire even a vendored engine, and never creates a cache.
         refused = run(rust, ['make', 'install', 'DESTDIR=' + str(base / 'stage')], success=False)
         assert b'engine cache is missing' in refused.stderr
@@ -138,7 +140,7 @@ def verify(entry):
         print('PASS: real Rust consumer, first/cache entry, Make/CLI/CI, profiles/features/output, offline and copy-only install', flush=True)
 
         web = base / 'embedded'
-        consumer(web, 'embedded-web', entry)
+        consumer(web, 'embedded-web', entry, standard=True)
         modules = ROOT / 'examples/embedded-web/web/node_modules'
         if not modules.is_dir():
             raise ValueError('Install locked example dependencies before this acceptance: npm ci --prefix examples/embedded-web/web')

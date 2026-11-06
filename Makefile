@@ -11,10 +11,16 @@ ifneq ($(origin CARGO_TARGET_DIR),undefined)
 export CARGO_TARGET_DIR
 endif
 RELEASE_ARGS ?= --apply
-BOOTSTRAP = cargo run --locked --quiet -p craftguild-standards --no-default-features --features bootstrap --bin craftguild-standards-bootstrap --
+BOOTSTRAP = cargo run --offline --locked --quiet -p craftguild-standards --no-default-features --features bootstrap --bin craftguild-standards-bootstrap --
 TARGET_ARG = $(if $(TARGET),--target $(TARGET),)
 
-.PHONY: build install test check acceptance banner release
+.PHONY: build install installer package test check acceptance banner release
+installer:
+	$(BOOTSTRAP) installer $(INSTALLER_ARGS)
+
+package:
+	python3 scripts/engine.py package $(PACKAGE_ARGS)
+
 release:
 	$(BOOTSTRAP) release $(RELEASE_ARGS)
 

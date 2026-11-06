@@ -109,6 +109,9 @@ pub fn assess(root: &Path, config: &Config, changed: Option<&str>) -> Result<Rep
     for (id, message) in policies::check(root, &config.policies, &all)? {
         report.finding(&id, None, message);
     }
+    if let Err(error) = crate::installer::generate(root, config, None, true) {
+        report.finding("CG-INSTALLER-001", None, error);
+    }
     agent_instructions(root, &config.standards_version, &mut report)?;
     Ok(report)
 }

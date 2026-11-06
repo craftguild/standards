@@ -32,7 +32,8 @@ pub fn build(root: &Path, artifact: &Artifact, target: &str, compile: bool) -> R
     if compile {
         use crate::execution_context::{Context, Options};
         let root = root.canonicalize()?;
-        let options = Options::parse(&["--target".into(), target.into()])?;
+        let mut options = Options::parse(&["--target".into(), target.into()])?;
+        options.standard_layout = crate::config::load(&root)?.rust_output_layout.is_some();
         let context = Context::resolve(&root, artifact, &options)?;
         let _lock = crate::execution_transaction::Lock::acquire(&root)?;
         return crate::execution::execute(

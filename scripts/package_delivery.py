@@ -6,11 +6,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tarfile
 import tempfile
 
+from engine import verified_engine
 from package_entry import package as package_entry
 from package_skill import package as package_skill
 
@@ -50,14 +50,14 @@ def package(root, destination):
     with tempfile.TemporaryDirectory(prefix='delivery-', dir=destination.parent) as name:
         temporary = Path(name)
         artifacts = temporary / 'artifacts'
-        artifacts.mkdir()
+        subprocess.run([str(verified_engine(root)), "package", "--group", "standards",
+                        "--output", str(artifacts)], cwd=root, check=True)
+        (artifacts / f"SHA256SUMS-{target}.txt").unlink()
         entry = temporary / 'craftguild-execution'
         descriptor = package_entry(root, entry)
         with tarfile.open(artifacts / f'craftguild-execution-{suffix}.tar.gz', 'w:gz') as archive:
             archive.add(entry, arcname='craftguild-execution')
         package_skill(root, artifacts / f'craftguild-standardize-{suffix}.tar.gz')
-        shutil.copy2(receipt['context']['output'], artifacts / f'craftguild-standards-{suffix}')
-        shutil.copy2(root / receipt['prepared']['sbom'], artifacts / f'craftguild-standards-{suffix}.bom.json')
         record = {
             'schema_version': 1, 'version': version, 'target': target, 'revision': revision,
             'protocol': receipt['protocol'], 'entry_bundle_sha256': descriptor['bundle_sha256'],

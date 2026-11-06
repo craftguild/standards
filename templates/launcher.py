@@ -70,7 +70,7 @@ def engine(root, entry, operation):
         raise ValueError('Entry descriptor requires an exact SHA-256 bundle digest')
     cache = owned(root, '.craftguild/engine/' + expected)
     if not cache.exists():
-        if operation == 'install':
+        if operation in {'install', 'package'}:
             raise ValueError('Matching engine cache is missing. ' + INSTRUCTION)
         source = owned(entry, descriptor['bundle'])
         manifest(source, expected)
@@ -97,9 +97,9 @@ def engine(root, entry, operation):
 
 def main():
     if len(sys.argv) < 2:
-        raise ValueError('Usage: launcher.py setup|build|prepare|install|test|check|acceptance|release')
+        raise ValueError('Usage: launcher.py setup|build|prepare|install|installer|package|test|check|acceptance|release')
     operation = sys.argv[1]
-    if operation not in {'setup', 'build', 'prepare', 'install', 'test', 'check', 'acceptance', 'release',
+    if operation not in {'setup', 'build', 'prepare', 'install', 'installer', 'package', 'test', 'check', 'acceptance', 'release',
                          'banner', 'assess', 'verify', 'verify-frontend', 'verify-receipt', 'validate-sbom',
                          'check-release-config', 'measure', 'measure-conditional'}:
         raise ValueError('Unknown entry operation: ' + operation)

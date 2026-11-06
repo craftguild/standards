@@ -1,5 +1,12 @@
-schema_version = 1
+schema_version = 2
 standards_version = "0.1.0"
+rust_output_layout = "standard"
+
+[[installers]]
+artifact = "standards"
+repository = "craftguild/standards"
+release_group = "standards"
+output = "scripts/install.sh"
 
 [[releases]]
 id = "standards"
@@ -58,6 +65,11 @@ reason = "Integration tests run only by Cargo test"
 pattern = "scripts/*.py"
 role = "implementation"
 reason = "Build, install and repository verification tools"
+
+[[sources]]
+pattern = "scripts/*.sh"
+role = "implementation"
+reason = "Standalone generated download installer, measured without a size exception"
 
 [[sources]]
 pattern = "templates/launcher.py"

@@ -167,3 +167,38 @@ Repository `commands` have unique `id`, nonempty `purpose`, nonempty `argv` and
 `phase` (`test`, `check` or `acceptance`). Ordinary tests and checks execute in
 `check`; acceptance remains an explicit separate entry. See the
 [skill policy example](../../skills/craftguild-standardize/references/policies.toml).
+
+## Standard Rust outputs and installers (source extension)
+
+ADR 0003 extends schema 2 in the current source engine. Published v0.2.0 does not
+provide these fields or commands. An optional root `rust_output_layout = "standard"`
+fixes every Rust executable/library output at
+`<target-dir>/<target-triple>/<debug|release>/<file>`, including native targets.
+Target-root precedence remains CLI, `CARGO_TARGET_DIR`, artifact `build.target_dir`,
+then `target`. Remove Rust `output` and `output_root` from base, target and variant
+settings before enabling the mode; even matching explicit overrides are rejected.
+Frontend bundle locations are unchanged. Without this setting schema 1/2 retains
+its previous layout behavior. Candidate caches remain private build inputs.
+
+Optional schema 2 `[[installers]]` declarations contain exactly `artifact`,
+`repository` (GitHub owner/repo), `release_group` and `output` (a safe relative
+script path). The artifact must be an executable Rust artifact whose package and
+lockfile belong to that release group. Artifact and output ownership are unique;
+unknown references, libraries, frontends, overlapping outputs and unsafe paths
+fail. For example:
+
+```toml
+[[installers]]
+artifact = "standards"
+repository = "craftguild/standards"
+release_group = "standards"
+output = "scripts/install.sh"
+```
+
+`installer [--artifact ID] [--check]` generates scripts deterministically from the
+embedded shell template. `--check` and ordinary `check` compare bytes without
+writing. Both template and generated shell remain measured implementation code.
+`package [--group ID] --output DIR` packages all installer artifacts in one group;
+omitting the group requires exactly one group among installer declarations.
+No standard-layout opt-in is needed to package legacy receipts. See the
+[distribution guide](../guides/installers.md) for verification and runtime rules.

@@ -142,6 +142,7 @@ fn verify(root: &Path, args: &[String], frontend_only: bool) -> Result<()> {
     let path = record.unwrap_or_else(|| format!(".craftguild/{}/prepared.json", artifact.command));
     let prepared: Prepared = serde_json::from_slice(&std::fs::read(paths::owned(root, &path)?)?)?;
     let mut options = options;
+    options.standard_layout = config.rust_output_layout.is_some();
     options.fallback_target = Some(prepared.build.target.clone());
     let context = Context::resolve(root, artifact, &options)?;
     let selected = context.artifact(artifact);

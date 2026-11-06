@@ -176,6 +176,10 @@ must be confirmed before rollback. A pending/PID scope marker also prevents
 recovery from treating missing process-log evidence as proof of termination.
 Unverified cleanup defers rollback and retains its snapshot. Hooks must stay in
 the owned group and must not daemonize or detach into another process scope.
+On macOS, signalling a zombie-only group may return `EPERM`. Inspect only that
+owned group's states and accept confirmed terminal zombies; live members,
+inspection errors or ambiguous empty results still prevent rollback. Confirm an
+empty group's disappearance with `ESRCH` rather than treating `EPERM` as absence.
 This engine currently refuses non-Unix subprocess execution before spawn;
 Windows requires an equivalent OS-owned process-tree implementation and host
 qualification before its execution/rollback guarantees can be offered.
@@ -253,3 +257,28 @@ a later gate failure belongs to the operation, never to that earlier build.
 Ownership conversion can therefore run before global quality assessment and its
 exact regeneration checks without living in a product Rust engine. Without an
 operation declaration, existing dispatch semantics and gate scopes apply.
+
+## Canonical outputs and release packaging
+
+The ADR 0003 source extension adds opt-in standard Rust layout and declarative standalone installers. It is not
+part of published v0.2.0. Build, copy-only install and package share the resolved
+context and complete receipt verification. Inferred install targets retain the
+receipt's explicit-target layout fact; an explicitly different selector still
+fails. Standard mode has no old-path search or compatibility copies.
+
+`installer` is deterministic generation (or read-only comparison). `package` is
+read-only source verification followed by a staged directory rename. It verifies
+the current explicit Git root is clean at the full revision recorded by every
+clean release receipt, the group's version authority, matching targets, complete
+seals/inventories, SBOM bytes and output hashes. It packages receipt outputs into
+`<command>-v<version>-<target>`, matching `.bom.json` files and
+`SHA256SUMS-<target>.txt`. Existing destinations are refused. It never invokes a
+compiler or dependency resolver. Entry dispatch requires a verified engine cache,
+just as copy-only install does. Make forwards `INSTALLER_ARGS` and `PACKAGE_ARGS`
+to the same CLI operations.
+
+Installer download, verification, staging and rename are transient technical
+stages. Traps clean owned temporary paths, and the old command survives failed
+verification or placement. No persistent business state, transition table,
+Header-Detail aggregate or install registry is introduced. Producer receipts remain
+local provenance; consumer artifacts do not gain source inventories or hashes.

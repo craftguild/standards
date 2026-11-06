@@ -33,7 +33,7 @@ include standards/execution/make/common.mk
 `make setup` verifies and copies the vendored engine into a repository-local cache.
 Build can perform that setup on first use. No sibling checkout, global engine or
 remote include is required. Entry/engine protocol mismatch, changed hashes and
-unsafe paths fail closed. Install requires an existing verified cache and output;
+unsafe paths fail closed. Install and package require an existing verified cache and output;
 it never sets up, downloads or builds anything.
 
 Declare artifacts and bounded hooks in schema 2. CLI selectors override their
@@ -83,3 +83,8 @@ The skill archive carries the same entry plus the rules and host executable.
 Release assets omit the producer's source-file ledger and local receipts. Host
 qualification applies only where the recorded CI/acceptance ran; a cross-target
 binary or bundle name alone is not a runtime qualification.
+
+The [installer guide](installers.md) covers the ADR 0003 source extension: standard
+Rust output mode, deterministic installer generation and receipt-backed packaging.
+Use `make installer INSTALLER_ARGS=--check` for drift checking and
+`make package PACKAGE_ARGS="--group ID --output DIR"` for a fresh delivery.

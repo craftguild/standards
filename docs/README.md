@@ -9,6 +9,7 @@ Read the [standards](../spec/README.md) for normative contracts.
 - [Development](guides/development.md) explains build, tests, install and skill packaging.
 - [Build execution](guides/orchestration.md) explains the compatible execution entry bundle.
 - [Execution design](design/orchestration.md) defines context, hooks and receipts.
+- [Installers](guides/installers.md) explains source-only release packaging and standalone download installation.
 - [Releases](guides/releases.md) explains preview, local preparation and signed publication.
 - [Release design](design/releases.md) defines version ownership and repeatable file updates.
 - [Conformance data](../conformance/contracts.json) records language-neutral cases and rule IDs.

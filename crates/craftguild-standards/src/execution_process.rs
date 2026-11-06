@@ -247,6 +247,8 @@ fn terminate(child: &mut std::process::Child) -> Result<()> {
     };
     match killpg(Pid::from_raw(child.id().try_into()?), Signal::SIGKILL) {
         Ok(()) | Err(Errno::ESRCH) => {}
+        #[cfg(target_os = "macos")]
+        Err(Errno::EPERM) if !group_live(child.id())? => {}
         Err(error) => return Err(error.into()),
     }
     child.wait()?;
@@ -264,28 +266,41 @@ fn terminate(child: &mut std::process::Child) -> Result<()> {
 pub(crate) fn group_live(pid: u32) -> Result<bool> {
     use nix::{errno::Errno, sys::signal::killpg, unistd::Pid};
     match killpg(Pid::from_raw(pid.try_into()?), None) {
-        Ok(()) => {
-            #[cfg(target_os = "macos")]
-            {
-                // macOS may retain orphan zombies after SIGKILL. They are
-                // terminal and cannot write; query only this owned group.
-                let output = Command::new("/bin/ps")
-                    .args(["-g", &pid.to_string(), "-o", "stat="])
-                    .output()?;
-                let states = String::from_utf8(output.stdout)?;
-                if output.status.success() {
-                    return Ok(states.split_whitespace().any(|s| !s.starts_with('Z')));
-                }
-                if output.status.code() == Some(1) && states.is_empty() && output.stderr.is_empty()
-                {
-                    return Ok(false);
-                }
-                Err("Cannot verify owned subprocess group states".into())
-            }
-            #[cfg(not(target_os = "macos"))]
-            Ok(true)
-        }
+        #[cfg(target_os = "macos")]
+        Ok(()) | Err(Errno::EPERM) => macos_group_live(pid),
+        #[cfg(not(target_os = "macos"))]
+        Ok(()) => Ok(true),
         Err(Errno::ESRCH) => Ok(false),
         Err(error) => Err(error.into()),
     }
 }
+
+#[cfg(target_os = "macos")]
+fn macos_group_live(pid: u32) -> Result<bool> {
+    use nix::{errno::Errno, sys::signal::killpg, unistd::Pid};
+    // Darwin skips zombies when signalling a group and may return EPERM even
+    // for our own terminal children. Confirm states instead of ignoring EPERM.
+    let output = Command::new("/bin/ps")
+        .args(["-g", &pid.to_string(), "-o", "stat="])
+        .output()?;
+    let states = String::from_utf8(output.stdout)?;
+    if output.status.success() && output.stderr.is_empty() && !states.trim().is_empty() {
+        return Ok(states.split_whitespace().any(|s| !s.starts_with('Z')));
+    }
+    if (output.status.success() || output.status.code() == Some(1))
+        && states.trim().is_empty()
+        && output.stderr.is_empty()
+    {
+        // Empty output alone is not evidence that an EPERM group disappeared.
+        return match killpg(Pid::from_raw(pid.try_into()?), None) {
+            Err(Errno::ESRCH) => Ok(false),
+            Ok(()) => Ok(true),
+            Err(error) => Err(error.into()),
+        };
+    }
+    Err("Cannot verify owned subprocess group states".into())
+}
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "../tests/unit/execution_process.rs"]
+mod tests;

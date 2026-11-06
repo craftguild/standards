@@ -27,7 +27,7 @@ python3 scripts/check_docs.py
 Consumer-library MSRV checks:
 
 ```sh
-cargo +1.85.0 check --locked -p craftguild-cli -p craftguild-cli-build
+cargo +1.85.0 check --locked -p craftguild-cli -p craftguild-core -p craftguild-cli-build
 ```
 
 The tool's Rust 1.95 requirement does not change the libraries' Rust 1.85 contract.
@@ -79,3 +79,23 @@ It creates the executable, consumer SBOM, matching entry/skill archives, release
 metadata and checksums. It invokes existing receipt validation and never builds
 or publishes. CI retains these assets for the exact tested commit; tagging and
 publication remain separate authorized operations.
+
+The source engine also supports [download installers](installers.md) and common
+release assets. Ordinary Rust build resolution/compilation uses locked offline
+Cargo inputs. Obtain dependencies explicitly before building (for example,
+`cargo fetch --locked`); builds do not install toolchains, SDKs or npm dependencies.
+
+CI creates a fresh job-local `CARGO_HOME` and adds its `bin` directory to PATH.
+Its explicit acquisition phase fetches the workspace and every standalone example
+before invoking offline bootstrap/build operations:
+
+```sh
+cargo fetch --locked
+cargo fetch --locked --manifest-path examples/rust-only/Cargo.toml
+cargo fetch --locked --manifest-path examples/embedded-web/Cargo.toml
+cargo fetch --locked --manifest-path examples/independent/backend/Cargo.toml
+```
+
+Use the same preparation when checking examples from a new local Cargo cache.
+Example Git pins are separate inputs; fetching only the workspace does not prepare
+them. Ordinary build, install and package keep their no-acquisition behavior.

@@ -13,6 +13,11 @@ embedded assets, generators, source roles and all required checks. Map each curr
 gate to an adapter, common policy or retained repository command before removal.
 Keep immutable migrations, generated ABI/ownership checks and operational contracts.
 
+Preserve the product guarantees each check protects, not obsolete orchestration
+or internal paths merely because existing tests assert them. When a local adapter
+is removed, update or remove tests of that adapter together and identify where its
+required coverage now lives. Do not keep the adapter just to keep its tests.
+
 The three distribution patterns are Rust-only, Rust with embedded Web assets, and
 independent frontend/backend. The backend's artifact omits the separate frontend;
 embedded Web inclusion follows bundle input evidence, not all development packages.
@@ -62,6 +67,27 @@ its descriptor and vendored bundle, into the selected repository. Use a real fix
 revision for released adoption or explicitly identify a source export for local
 development. Keep toolchain requirements separate from consumer-library MSRV.
 
+### Adopt the shared output layout
+
+For Rust executables and libraries, use
+`<target-dir>/<target-triple>/<profile>/<file>`, including the target triple for
+native builds. Keep supported target-root and profile selectors. Update the
+product's Make aliases, scripts, install/package consumers, tests and documentation
+to the shared output location or verified receipt. Do not introduce an output
+template, `output_root`, native-only `{target_path}`, copy-back, symlink or fallback
+search solely to reproduce the former layout, such as `target/release/<bin>`.
+
+Enable `rust_output_layout = "standard"` when supported by the selected pinned
+engine. Check that engine's capabilities before adding configuration; the default
+shared layout also works without this newer enforcement setting. A setting missing
+from an older engine is not a reason to restore the historical path.
+
+Retain a layout exception only for an explicit user requirement or a concrete
+external contract, such as an SDK or loader's fixed artifact slot. Identify that
+contract and keep the exception bounded. Existing files, tests or habits alone
+are not evidence of a compatibility requirement. Frontend bundle layout retains
+its own contract.
+
 Map product operations to prerequisite/prepare/evidence/verify argv hooks with
 declared inputs and fresh outputs. Let the engine own context resolution, assets,
 dependency inclusion, seals, compilation, verification and receipts. Do not retain
@@ -73,9 +99,34 @@ conversion belongs under `.craftguild`, not in tracked source.
 Use the shared resolver for build/install and retain public aliases/selectors.
 Install copies only a matching verified output and must fail without acquiring
 an engine or invoking a compiler. Keep source inventories/hashes in local seals
-and receipts, outside consumer SBOM metadata. Verify failure/cancellation rollback,
-offline help/version/machine JSON/exact SBOM, and release reapplication after a
-build refresh before claiming completion.
+and receipts, outside consumer SBOM metadata.
+
+### Keep verification with its owner
+
+Standards owns tests of common context/path resolution, process cancellation and
+rollback, seals and inventories, receipts, generic install/package behavior and
+release preparation. Use the pinned version's existing conformance coverage and
+recorded evidence; do not copy its fixtures or failure matrix into each consumer,
+or rerun the full standards suite as a new consumer gate. Report a common gap or
+regression upstream and add its test there when authorized. If coverage cannot be
+confirmed, report that limit instead of claiming it passed.
+
+Products retain domain, SDK, ABI, generator ownership/reproduction, hook and
+distribution-specific guarantees. For the changed wiring, reuse existing artifact
+acceptance to build the actual selected artifact, locate its verified output and
+check offline presentation and exact embedded SBOM where applicable. Extend those
+checks only for a gap introduced or exposed by this migration. Exercise common
+failure paths in a consumer only when a product hook, driver or integration adds
+an uncovered risk.
+
+Before adding a test, name the concrete risk and explain why existing common and
+product checks do not cover it. Prefer extending an existing focused check. Do
+not add a general build-quality harness, duplicate configuration/flag matrices,
+or tests of Make recipe text, private engine steps or old path strings merely
+because standards is being adopted. Preserve meaningful existing coverage without
+automatically preserving every old test implementation. Adding new suites and
+running existing required gates are separate decisions; adoption alone does not
+expand gate scopes or platform matrices.
 
 ## Apply and verify
 
@@ -105,3 +156,31 @@ create public history there. Publish dependencies first, then update full fixed
 HTTPS revisions/provenance and freeze clean consumer commits. Confirm anonymous
 fetch/build and actual CI before tagging. Do not begin this workflow merely
 because a standardization request mentions public readiness.
+
+
+## Package and qualify standalone installers
+
+For an engine supporting the ADR 0003 source extension (not published v0.2.0),
+declare `[[installers]]` with an executable artifact, GitHub repository, owning
+release group and safe script output. Run the common `installer` command and its
+read-only `--check`; ordinary `check` also rejects drift. Generated scripts remain
+implementation code without a size exception. Do not add a consumer generator.
+
+Use `package [--group ID] --output DIR` (or `make package PACKAGE_ARGS="..."`) after
+clean release builds. All installer artifacts in the group must share target and
+version, match its version authority and current full clean Git HEAD, and pass
+complete receipt/seal/inventory/SBOM/output verification. Fresh staged output
+contains versioned binaries, consumer SBOMs and target checksums. Neither package
+nor launcher package dispatch may acquire an engine or start a build. Consumer
+SBOMs and bundles exclude local source ledgers. Keep checksum files out of asset
+maps and checksum inputs.
+
+Download installers accept stable unprefixed `--version`, absolute `--bindir`,
+`--uninstall` and `--help`. Destination priority is flag, BINDIR, then
+HOME/.local/bin; source-build install keeps its /usr/local/bin/PREFIX/DESTDIR
+contract. Latest selection pins one validated group tag; exact SHA-256 verification
+precedes destination operations. Elevate only necessary destination operations,
+retain the old binary on failure and remove only a regular command on uninstall.
+Qualify shared failure matrices in standards with real sh/hash and network/sudo
+process stubs. Run real binary temporary install/uninstall and offline identity/
+exact SBOM acceptance on available hosts, recording unexecuted hosts separately.

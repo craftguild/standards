@@ -41,11 +41,13 @@ pub fn run(args: &[String]) -> Result<()> {
                 |_| "No verified build receipt. Run setup and make build without privileges first.",
             )?)?)?;
         let mut selectors = options.clone();
+        selectors.standard_layout = config.rust_output_layout.is_some();
         selectors.offline = true;
         selectors.known_host = receipt.context.host.clone();
         selectors.known_compiler = Some(receipt.context.compiler_version.clone());
         if selectors.get("target").is_none() && artifact.target.is_none() {
             selectors.fallback_target = Some(receipt.context.target.clone());
+            selectors.fallback_explicit_target = receipt.context.explicit_target;
         }
         if selectors.get("toolchain").is_none()
             && artifact

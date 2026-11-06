@@ -43,6 +43,7 @@ pub struct Graph {
 pub fn flags(a: &Artifact, target: &str) -> Vec<String> {
     let mut flags = vec![
         "--locked".into(),
+        "--offline".into(),
         "--manifest-path".into(),
         a.manifest.clone(),
         "--target".into(),
@@ -70,6 +71,7 @@ pub fn resolve_with(root: &Path, a: &Artifact, target: &str, runner: &Runner) ->
             "cargo".into(),
             "metadata".into(),
             "--locked".into(),
+            "--offline".into(),
             "--format-version".into(),
             "1".into(),
             "--manifest-path".into(),

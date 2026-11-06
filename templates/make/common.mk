@@ -15,7 +15,7 @@ export CARGO_TARGET_DIR
 endif
 CRAFTGUILD_LAUNCH = python3 "$(CRAFTGUILD_ENTRY_DIR)/launcher.py"
 
-.PHONY: setup build prepare install test check acceptance release
+.PHONY: setup build prepare install installer package test check acceptance release
 setup:
 	$(CRAFTGUILD_LAUNCH) setup
 build:
@@ -24,6 +24,10 @@ prepare:
 	$(CRAFTGUILD_LAUNCH) prepare $(BUILD_ARGS)
 install:
 	$(CRAFTGUILD_LAUNCH) install $(INSTALL_ARGS)
+installer:
+	$(CRAFTGUILD_LAUNCH) installer $(INSTALLER_ARGS)
+package:
+	$(CRAFTGUILD_LAUNCH) package $(PACKAGE_ARGS)
 test:
 	$(CRAFTGUILD_LAUNCH) test
 check:
