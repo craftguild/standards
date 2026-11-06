@@ -10,6 +10,7 @@ import tempfile
 
 from installer_fixture import InstallerFixture
 from signing import signed_git
+import verify_execution
 from verify_execution import consumer, offline, run
 
 
@@ -17,7 +18,9 @@ def files(directory):
     return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in directory.iterdir()}
 
 
-def verify(entry):
+def verify(entry, environment=None):
+    verify_execution.TRANSPORT.clear()
+    verify_execution.TRANSPORT.update(environment or {})
     with tempfile.TemporaryDirectory(prefix='standards-real-installer-') as name:
         base = Path(name).resolve()
         root = base / 'consumer'
@@ -33,15 +36,16 @@ output="scripts/download.sh"
 '''
         (root / 'craftguild.toml').write_text(config)
         (root / '.gitignore').write_text('.craftguild/\ntarget/\noffline/\n')
-        # Even the vendored engine cannot be acquired by package.
+        # Package requires explicit setup; it cannot acquire the pinned engine.
         refused = run(root, ['make', 'package', 'PACKAGE_ARGS=--output ' + str(base / 'absent')], success=False)
         assert b'engine cache is missing' in refused.stderr
         assert not (root / '.craftguild/engine').exists()
+        run(root, ['make', 'setup'])
         run(root, ['make', 'installer'])
         generated = (root / 'scripts/download.sh').read_bytes()
         run(root, ['make', 'installer', 'INSTALLER_ARGS=--artifact backend --check'])
         run(root, [sys.executable, 'standards/launcher.py', 'installer', '--check'])
-        engine = next((root / '.craftguild/engine').glob('*/bin/craftguild-standards'))
+        engine = next((root / '.craftguild/engine').glob('*/*/craftguild-standards'))
         run(root, [engine, 'installer', '--artifact', 'backend'])
         assert (root / 'scripts/download.sh').read_bytes() == generated
         (root / 'scripts/download.sh').write_bytes(generated + b'# drift\n')

@@ -14,20 +14,21 @@ reference product, user configuration or running daemon.
 | Quality | 400/401, role exclusions, mixed syntax, missing measurements/tools, unknown configuration |
 | Policies | Dependency layers, parsed SeaORM uses, verified ownership/reproduction, repository checks |
 | Workflow | Agent pointers, make contracts, isolated install, target paths, docs/skill links |
-| Releases | Stable MAJOR/MINOR/PATCH, scoped range, first version, none/invalid changes, lockfiles, deterministic notes/replay, dirty work and tag protection |
+| Releases | 0.x effective MINOR for breaking, explicit-MAJOR intent/replay, stable MAJOR/MINOR/PATCH, scoped range, first version, none/invalid changes, lockfiles, deterministic notes/replay, dirty work and tag protection |
 | Installer/package | Strict schema/layout, deterministic script drift, full receipt/HEAD/target checks, real sh/hash with stubbed network/sudo, atomic replacement and regular-file uninstall |
-| Signing | OpenPGP verification for every real/test commit, missing-signature detection and isolated simulated failure with no publication |
+| Signing | OpenPGP verification for positive histories; intentional unsigned rejection fixtures and isolated simulated failure with no publication |
 | Platforms | macOS/Linux CI and Rust 1.85 consumer libraries |
 | Publication | Reviewed inventory, public HTTPS clone/build, full-revision consumer, green CI, v0.1.0 |
 
 No release result is claimed until these checks run against the final source.
 Record unavailable environments and unimplemented coverage explicitly.
 
-`python3 scripts/tests/verify_installers.py target/execution-entry` runs real host
-consumer build/package and temporary installer/uninstall acceptance through the
-matching distributed entry. Existing platform runners execute it; target mapping
-tests do not certify unexecuted host binaries. ADR 0003 implementation evidence
-is recorded separately from the published v0.2.0 result.
+`python3 scripts/tests/verify_initialization.py` builds a disposable signed clean
+source fixture, validates flat host delivery and its release index, then exercises
+real init/prime and standalone consumer/installer acceptance using stubbed HTTPS
+and temporary HOME/destinations. Mapping tests do not qualify unexecuted hosts.
+The earlier ADR 0003 records below describe its historical bundle qualification;
+ADR 0004 replaces that delivery workflow while retaining its artifact guarantees.
 
 ## ADR 0003 source qualification (2026-11-06)
 
@@ -179,3 +180,140 @@ Actual cold-cache CI and other host executions remain release qualification,
 tracked in `standards-9tx` as explicitly accepted by the owner. These local results do not claim remote CI
 or a new released binary. Git publication of the reviewed source is a separately
 authorized step; package versions and published tags remain unchanged.
+
+
+## ADR 0005 source qualification (2026-11-06)
+
+The source release engine now applies the selected group's current major version:
+breaking changes select MINOR at 0.x and MAJOR from 1.0.0 onward. Explicit
+`--major` applies current major + 1 once, including initial releases and empty
+ranges. Published v0.3.0 and its receipts, notes, versions and tags are unchanged.
+
+`tests/releases.rs` checks every inferred increment across 0.0.x, high 0.x minor,
+1.x and 2.x, normal initial versions and checked overflow. Signed disposable Git
+fixtures in `scripts/tests/test_release.py` exercise initial/tagged preview and
+apply, all breaking forms and mixed ranges, independent groups with different
+major versions, empty/non-bumping ranges, synchronized Cargo/npm manifests and
+lock roots, breaking notes with full identities, matching-mode replay before and
+after committing only preparation, both directions of mode conflict, legacy
+receipt refusal, stale/dirty/tag guards and signature/message rejection. The
+intentional unsigned fixture tests rejection; all positive histories use disposable
+OpenPGP keys. A product preparation hook fixture proves mode conflicts precede
+hook, record and file writes. Actual repository Make forwarding passed isolated
+explicit-major preview/apply/replay as well.
+
+Final ordinary `make check` passed all eight gates, including 29 Python tests.
+Rust 1.85 consumer-library checks passed offline. Tokei 15.0.0 measured the four
+changed implementation files at 180, 201, 214 and 279 Code lines; the complete
+repository gate measured 89 files with maximum 362, no unmeasured files or size
+exceptions. Increment selection, planning/CLI, guarded receipt persistence and
+operation hooks remain separate responsibilities. Immutable receipts retain
+technical intent/provenance; signed Git history records publication. There is no
+business lifecycle or Header-Detail aggregate.
+
+Local evidence is retained in `.craftguild/a0c-final-check.log`,
+`a0c-msrv.log` and `a0c-make.log`. Execution was on macOS arm64; no remote CI or
+other host qualification was run. No product, real HOME/system installation,
+package version or published artifact was changed. No real-repository release
+preparation, stage/commit/tag/push or publication was performed.
+
+## ADR 0004 source qualification (2026-11-06)
+
+The source implements init, fixed verified acquisition and offline prime, replacing
+execution/skill archives. Published v0.3.0 and earlier do not provide this model.
+No public consumer pin was created. Canonical contracts and adoption/configuration
+texts are embedded and explicitly sealed engine inputs; detailed source ledgers
+remain producer-local and are absent from delivery metadata and consumer SBOMs.
+
+| Contract | Current evidence |
+| --- | --- |
+| Initialization | Nine Rust integration tests cover valid unfinished TOML, strict operational rejection, preserved config/Make/contracts, short local skill, ignore/retry/no rewrite, conflicting files/markers/symlinks, locks, interrupted publication, concurrent changes, owned rollback, failed output and legacy-descriptor migration refusal. |
+| Acquisition and entry | Nine Python entry tests cover four host targets and aliases through stubbed transport, unavailable/unsupported hosts, exact assets, transport/incomplete/hash/identity/compatibility failures, interruption cleanup, cache reuse/tamper and missing-cache refusal for all ordinary operations. Make forwards release intent and prime. Hash verification precedes executing downloaded code. |
+| Context | Rust tests cover overview, every topic, pinned links, unknown topics, missing/malformed/unfinished/structurally configured config and no product gate/hook execution. Real CLI acceptance uses a denied-tool PATH and file snapshots to verify offline, banner-free, read-only matching context. |
+| Matching versions | A disposable clean source engine at fixture version 0.3.0 initializes the consumer. A separately rebuilt installed fixture at 9.9.9 delegates prime/init to the unchanged fixed engine; its dirty unpublished build cannot create a fresh public reference. Missing/tampered cache is refused without acquisition. These are test fixtures, not published versions or consumer pins. |
+| Standalone consumers | Actual Rust and npm/esbuild consumers use only the thin entry/pin/config plus their product/build inputs. Make/direct/launcher output agreement, standard output layout, offline identity, exact SBOM, copy-only install and standalone/embedded Web runtime inclusion pass. No rules tree, engine archive, sibling checkout or figlet-rs runtime dependency is needed. Common-crate source exports are confined to disposable development fixtures. |
+| Flat delivery | A clean signed source fixture produces exactly binary, matching SBOM, host metadata and target checksums. Aggregation produces a versioned index/checksum. Tests reject ignored added/unsealed/changed/missing sealed inputs and SBOM/binary tampering independently of Git dirtiness; restored control output is identical. Metadata tests combine unique matching hosts and reject mixed identities, duplicate hosts and changed assets. |
+| Installer and ownership | The real consumer preserves receipt-backed package/generation equivalence and temporary install/uninstall with exact SBOM/identity. Existing common context, cancellation, package, font and measurement suites remain in standards. Retired optional bundle-pilot scripts no longer move font tests into product core; SDK/ABI/generator/domain gates remain with the unchanged products. |
+| Release follow-up | The final signed release fixture also rejects missing schema-2 preparation intent; a normal 0.x receipt cannot authorize promotion regardless of receipt schema. Both retry modes remain guarded before product hooks. |
+| Required gates | Final ordinary make check passed all eight gates, including 37 Python tests; focused initialization/release tests, offline Rust 1.85 consumer-library checks, document/provenance/whitespace checks and workflow YAML/host-index dependency checks passed. |
+| Size and boundaries | Tokei 15.0.0 measured all 16 changed implementation files, maximum 279 Code; the full gate measured 91 files, maximum 362, with no oversized/unmeasured files or size exceptions. Pin validation, initialization planning, transaction/rollback, context rendering, acquisition/dispatch and delivery/index generation have separate responsibilities. Tests/helpers, fixtures, ADRs and design prose are excluded by role. |
+
+Actual execution was macOS arm64 (`aarch64-apple-darwin`). The final isolated
+fixture's clean engine revision was `4150ab17efa6655d0e7b6218508ef18fa0d110a3`;
+the installer consumer used `64aea23d7ffbfd419a10aef4933eeda27cb6e584`. Both
+repositories and disposable keys were removed. Never use these fixture revisions
+as public source pins. Final legacy-reference and missing-intent guard additions
+are covered by focused regressions and the final full gate; the real standalone
+host acceptance separately verifies the flat delivery/init/prime/build workflow.
+
+Local evidence: `.craftguild/g6b-acceptance-pass.log`, `g6b-completion-check.log`,
+`g6b-audit-tests.log`, `g6b-entry-final.log`, `g6b-msrv.log` and
+`g6b-final-size.json`. Earlier attempts exposed fixture HOME/toolchain routing and
+a shared transport-log baseline error; the corrected acceptance completed.
+
+macOS x86_64 and Linux x86_64/arm64 actual runtimes/SDKs remain unexecuted for this
+source. Mapping stubs are not host qualification. The existing Linux/macOS CI
+host definitions now exercise flat acceptance and combine qualified host metadata;
+no remote CI was triggered. Init has no global skill install, and all acceptance
+HOME/destinations and transport/signing resources were isolated. There were no
+product edits, real user/system installations, dependency/version changes,
+real-repository release preparation, stage/commit/tag/push or publication.
+
+The final focused signed-release run passed all 19 tests after extending the
+matrix to independent fix-only/non-bumping/empty/breaking ranges and a tagged
+1.x explicit-MAJOR preview/apply/replay. Evidence is
+`.craftguild/g6b-release-verified.log`; this follows the eight-gate full run above
+without further implementation changes. An assertion-placement error in the
+first test extension was corrected before this passing run.
+
+
+## ADR 0004 initialization review corrections: standards-ofl (2026-11-06)
+
+The previous full gates missed two integration cases: the generated AGENTS block
+omitted the normative baseline required by CG-AGENT-001, and init recognized only
+the old execution descriptor rather than the known manifest-based adoption.
+
+The generated common block now takes its baseline from the engine's BASELINE
+constant, with the source AGENTS template aligned. The instruction checker is
+unchanged. A regression completes a real Rust product fixture after initialization
+and runs the actual quality assessor before and after identical reinitialization.
+It preserves product contracts and reports zero findings. Removing only the
+baseline remains a CG-AGENT-001 failure.
+
+Init now refuses both standards/manifest.json and
+standards/execution/engine.json before release lookup, cache acquisition or
+installed-version delegation. The planner shares this guard. It does not load or
+remove legacy pins, rewrite product Make recipes or create a second authority.
+A fixture matching the reviewed v0.2 manifest and legacy Make include exercises
+the real initialization operation in isolated child processes. It covers fresh
+legacy adoption and coexistence with a new pin invoked from a different installed
+version. A transport marker must remain absent; legacy file snapshots stay exact,
+and no new pin or cache appears. Existing fresh/repeated new-format tests remain.
+
+The new regressions failed on the reviewed source (nine passed, two failed) and
+all eleven initialization tests passed after correction. The review-authored
+probe was rerun unchanged against a separate owned fixture: generated AGENTS
+findings were empty, legacy planning returned false and init returned the expected
+explicit-migration error before creating any cache or second authority. This is
+probe revalidation by the implementer, not independent code re-review approval.
+
+Evidence: .craftguild/ofl-regressions-red.log, ofl-regressions-green.log,
+ofl-review-probe.log, ofl-msrv.log and ofl-size.json. The modified implementation
+unit initialization.rs measures 192 Code with tokei 15.0.0; unmeasured/oversized
+files: zero. Test/helper code, template prose and design documents are excluded
+by responsibility. No split is needed: the legacy guard belongs to initialization
+preflight, and the common block remains initialization output.
+
+All new fixtures are isolated. No product repository, real HOME/system destination,
+source version/dependency, published asset or release history was changed. No
+real-repository release preparation, stage/commit/tag/push, live service, remote
+CI or other-host runtime was used. The full signed-source host acceptance was not
+repeated for these two focused corrections. Independent code re-review remains
+the parent issue's final acceptance step.
+
+Final ordinary make check passed all eight gates, including 38 Python tests;
+the complete source gate measured 91 implementation files, maximum 362 Code,
+with no unmeasured files or size exceptions. Offline Rust 1.85 consumer checks,
+rustfmt/Clippy, document/provenance and whitespace checks passed. Full-gate evidence
+is .craftguild/ofl-check.log. Executed host: macOS arm64; other hosts and remote CI
+remain unexecuted for this correction.

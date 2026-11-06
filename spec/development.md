@@ -27,10 +27,12 @@ receipts and an existing engine/cache, without acquisition or bootstrap.
 
 Release preparation uses the [common release contract](releases.md).
 Preview precedes application; explicit configuration owns synchronized manifests,
-lockfiles and artifact scopes. Breaking changes select MAJOR, `feat` MINOR and
-`fix` PATCH, with no implicit 0.x exception. Use the greatest required increment
-once since the previous release tag; other types alone do not increment. An
-explicit first version avoids double-incrementing prepared initial manifests.
+lockfiles and artifact scopes. Breaking changes select MINOR at 0.x and MAJOR
+from 1.0.0 onward; `feat` selects MINOR and `fix` PATCH. Use the greatest effective
+increment once since the previous release tag. Other types alone do not increment.
+Normal first releases retain the configured initial version. Explicit `--major`
+requests current major + 1 with minor/patch zero, including on first releases.
+Normal 0.x preparation never crosses to 1.x. Retry with the same mode.
 Invalid messages and unavailable signatures fail. Preserve unrelated work and
 make repeated preparations idempotent. Commit, tag, push and publication remain
 separate authorized operations under the OpenPGP signature/stop contract.
@@ -47,7 +49,7 @@ numbers, statuses and supersession; update links and checks in the same change.
 AGENTS.md has a short versioned common reference block and a repository-specific
 section for design, product and operational contracts. Do not duplicate numerical
 quality rules. Other agent instructions reference the same authority. A standalone
-clone must contain the required standards/skill assets or pinned accessible links;
+clone keeps a fixed engine reference, common entry and short local skill;
 no sibling checkout or personal absolute path may be required.
 
 Apply design-baselines before modeling state machines/lifecycles or business line
@@ -61,3 +63,14 @@ Installer checks compare without writing, including during `make check`. Package
 requires an existing verified engine/cache and release receipts; it never runs
 setup or compilers. Published v0.2.0 does not provide this extension. Download
 installation is distinct from the copy-only source-build install contract above.
+
+
+The ADR 0004 source extension adds `init` and `prime [--topic NAME]` (not available
+in published v0.3.0). Init uses cwd, a clean published implementing engine and
+exact host assets. It preserves existing product config/recipes/contracts and
+generates an explicitly unfinished starter when config is absent. The shared
+entry is standards-owned; only init and explicit `make setup` acquire an engine.
+All ordinary operations and prime require its verified fixed repository-local
+cache. No Latest, compile or sibling fallback is provided. Prime presents the
+same engine's embedded context offline without writes or product execution;
+missing/malformed config is preparation status, never conformance success.

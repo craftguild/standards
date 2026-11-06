@@ -20,9 +20,10 @@ All tags must be available (use a full clone/fetch). The range ends at the full
 HEAD observed when planning. Literal repository paths select group commits;
 merges with nonconventional messages are errors. Every selected commit must have
 a valid OpenPGP signature. A breaking `!` or uppercase breaking footer wins over
-`feat`, which wins over `fix`; other types do not increment. Major increments
-apply equally to 0.x. With no previous tag, the explicit initial version is used
-unchanged and all selected history is included. An empty post-tag range or only
+`feat`, which wins over `fix`; other types do not increment. For a selected group at 0.x, breaking changes select an effective MINOR
+increment; from 1.0.0 onward they select MAJOR. Normal 0.x releases never cross
+to 1.x and arithmetic overflow fails. With no previous tag, normal preparation
+uses the explicit initial version unchanged and all selected history is included. An empty post-tag range or only
 non-bumping changes produces no edits.
 
 Preparation requires a clean checkout, then fixes the comparison revisions,
@@ -47,3 +48,15 @@ publication history. There is no durable business entity/current-state table to
 update and no business line-item aggregate. File-edit arrays are technical
 inventories, so no artificial Header-Detail database model is introduced. The
 write boundary is a guarded, recoverable local file operation, not publication.
+
+
+Explicit `release --major` selects current major + 1 with minor and patch zero,
+including first releases (using `initial_version`), empty post-tag ranges and
+non-bumping history. It overrides increment selection only: message/signature,
+full-history, ownership, dirty-input and tag protections still apply. Breaking
+explanations and full commit identities remain in notes. Use `--major` for preview,
+apply and every retry, for example `make release RELEASE_ARGS="--major --json"`
+then `make release RELEASE_ARGS="--major --apply"`. Receipt schema 2 records
+`mode` (`normal` or `explicit-major`) and the effective `bump`; initial normal
+preparation has no increment. Conflicting pending modes fail before writes.
+Historical receipts do not authorize an implicit 0.x to 1.x transition.

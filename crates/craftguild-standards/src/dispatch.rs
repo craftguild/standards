@@ -10,6 +10,7 @@ use std::io::Write;
 
 pub fn run(name: &str, args: &[String], output: &mut impl Write) -> Result<()> {
     match name {
+        "prime" => crate::initialization::prime(args, output),
         "protocol" if args.is_empty() => {
             writeln!(output, "{PROTOCOL}")?;
             Ok(())

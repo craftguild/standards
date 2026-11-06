@@ -1,4 +1,4 @@
-# Entry protocol craftguild-execution-1. Include from the product repository root.
+# Entry protocol craftguild-entry-1. Include from the product repository root.
 .DEFAULT_GOAL := build
 CRAFTGUILD_ENTRY_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 PREFIX ?= /usr/local
@@ -15,9 +15,11 @@ export CARGO_TARGET_DIR
 endif
 CRAFTGUILD_LAUNCH = python3 "$(CRAFTGUILD_ENTRY_DIR)/launcher.py"
 
-.PHONY: setup build prepare install installer package test check acceptance release
+.PHONY: setup prime build prepare install installer package test check acceptance release
 setup:
 	$(CRAFTGUILD_LAUNCH) setup
+prime:
+	$(CRAFTGUILD_LAUNCH) prime $(PRIME_ARGS)
 build:
 	$(CRAFTGUILD_LAUNCH) build $(BUILD_ARGS)
 prepare:

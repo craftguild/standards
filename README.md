@@ -4,12 +4,11 @@ Shared CLI presentation, artifact SBOM preparation, quality checks and developme
 contracts for Craftguild products. Language-neutral rules are backed by Rust and
 npm adapters and the `craftguild-standardize` agent skill.
 
-The build engine implements ADR 0002 with configuration schema 2 and a compatible
-Make/launcher bundle. The current source also implements ADR 0003 standard Rust
-outputs, receipt-backed packaging and generated download installers; published
-v0.2.0 does not include that extension. Published v0.1.0 does not include the engine. The normative
-rules baseline (`standards_version = "0.1.0"`), package versions, prepared seals
-and entry protocol have separate compatibility identifiers.
+The source engine supports fixed-reference repository initialization, offline
+`prime` topics, shared builds, standard Rust outputs, verified packaging and
+download installers. Published v0.3.0 and earlier do not implement init/prime or
+this flat delivery model. Engine versions and the normative 0.1.0 baseline have
+separate compatibility identifiers; unpublished source is not a public pin.
 
 ## Quick start
 
@@ -31,6 +30,10 @@ CycloneDX 1.5 JSON without a banner.
 The built CLI's help, version, banner and SBOM operations require no language
 runtime, Git, network, configuration or daemon. Build and quality operations need
 the appropriate build tools and a repository checkout.
+
+Init and explicit setup need Python 3, curl and HTTPS access to the fixed release
+assets. The shared entry and prime need Python 3 and an existing verified cache;
+prime itself needs no network, compiler or product execution.
 
 The consumer libraries `craftguild-cli`, `craftguild-cli-build` and
 `craftguild-core` declare Rust 1.85 compatibility. The standards executable uses
@@ -60,6 +63,8 @@ in Cargo.lock. `make install` only copies a built binary and supports `PREFIX`,
 ## Usage
 
 ```sh
+craftguild-standards init
+craftguild-standards prime --topic configuration
 craftguild-standards banner standards --output assets/banner.txt
 craftguild-standards banner standards --check assets/banner.txt
 craftguild-standards build --artifact standards
@@ -70,12 +75,14 @@ craftguild-standards check --json
 craftguild-standards release --json
 ```
 
-Configure artifacts, source roles, language adapters and repository checks in
+Init requires a clean published implementing engine and preserves existing config
+and recipes. Its starter is unfinished; use prime, then configure actual artifacts,
+source roles, language adapters and repository checks in
 [`craftguild.toml`](craftguild.toml). Read the [contracts](spec/README.md),
 [architecture](docs/design/architecture.md), [configuration](docs/design/configuration.md)
 and [skill](skills/craftguild-standardize/SKILL.md).
 The [execution guide](docs/guides/orchestration.md) explains
-the pinned Make/launcher bundle, hooks, receipts and copy-only installation.
+initialization, the fixed Make/launcher entry, hooks, receipts and copy-only installation.
 The [installer guide](docs/guides/installers.md) explains release packaging and the
 standalone download installer. After publication of this source script, its raw
 URL supports `curl -fsSL <Raw URL> | sh -s --`, with optional `--version X.Y.Z`,
@@ -105,8 +112,9 @@ Use `check --changed --json` after implementation edits to narrow source measure
 - SeaORM inspection parses syntax and macro token identifiers. It does not perform
   compiler name/type resolution or expand arbitrary external macros.
 - Unsupported conditional test separation is reported as unmeasured.
-- Entry bundles contain a host-specific engine. Other hosts require a matching
-  verified bundle; ordinary builds do not install toolchains or SDKs.
+- Setup selects only host assets present in the fixed release reference. Missing
+  caches require explicit setup; ordinary operations and prime never acquire an
+  engine. Toolchains and SDKs remain separate prerequisites.
 - Subprocess execution requires a Unix host. Non-Unix execution is refused before
   spawning tools; consumer-library compatibility is a separate contract.
 - Release acceptance and publication evidence remain requirements until recorded

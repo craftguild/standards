@@ -10,6 +10,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
+TRANSPORT = {}
 
 
 def run(root, argv, env=None, success=True):
@@ -17,6 +18,7 @@ def run(root, argv, env=None, success=True):
     for key in ['ARTIFACT', 'TARGET', 'PROFILE', 'TOOLCHAIN', 'FEATURES',
                 'NO_DEFAULT_FEATURES', 'CARGO_TARGET_DIR', 'CRAFTGUILD_PREPARED']:
         environment.pop(key, None)
+    environment.update(TRANSPORT)
     environment.update(env or {})
     result = subprocess.run([str(a) for a in argv], cwd=root, env=environment,
                             capture_output=True, timeout=300)
@@ -72,24 +74,28 @@ def offline(root, command):
     info = json.loads(run(isolated, [copied, '--machine-version'], env).stdout)
     assert info == record['prepared']['build']
     bom = json.loads((root / record['prepared']['sbom']).read_text())
+    assert 'figlet-rs' not in {component['name'] for component in bom['components']}
     assert {p['name'] for p in bom['metadata']['properties']} == {'craftguild:build', 'craftguild:features'}
     assert run(isolated, [copied], env).stdout == run(isolated, [copied, '--help'], env).stdout
     assert run(isolated, [copied, '--version'], env).returncode == 0
     return record
 
 
-def verify(entry):
+def verify(entry, environment=None):
+    TRANSPORT.clear()
+    TRANSPORT.update(environment or {})
     with tempfile.TemporaryDirectory(prefix='craftguild-real-consumers-') as temporary:
         base = Path(temporary).resolve()
         rust = base / 'rust'
         consumer(rust, 'rust-only', entry, standard=True)
-        # Install may not acquire even a vendored engine, and never creates a cache.
+        # Ordinary install cannot acquire the pinned engine or create a cache.
         refused = run(rust, ['make', 'install', 'DESTDIR=' + str(base / 'stage')], success=False)
         assert b'engine cache is missing' in refused.stderr
         assert not (rust / '.craftguild/engine').exists()
+        run(rust, ['make', 'setup'])
         run(rust, ['make', 'build', 'PROFILE=debug', 'FEATURES=optional-part', 'CARGO_TARGET_DIR=products'])
         first = offline(rust, 'sample')
-        engine = next((rust / '.craftguild/engine').glob('*/bin/craftguild-standards'))
+        engine = next((rust / '.craftguild/engine').glob('*/*/craftguild-standards'))
         run(rust, [sys.executable, 'standards/launcher.py', 'build', '--profile', 'debug',
                    '--features', 'optional-part', '--target-dir', 'products'])
         direct = receipt(rust, 'sample')
@@ -164,6 +170,7 @@ directory="web/dist"
 command=["npm","--prefix","web","run","build"]
 '''
         (web / 'craftguild.toml').write_text(config)
+        run(web, ['make', 'setup'])
         run(web, ['make', 'build', 'ARTIFACT=frontend', 'PROFILE=debug'], {'RUSTC': str(base / 'missing-rustc')})
         front = receipt(web, 'example-ui')
         assert front['prepared']['build']['compiler'].startswith('node ')
@@ -174,7 +181,7 @@ command=["npm","--prefix","web","run","build"]
         bom = json.loads((web / embedded['prepared']['sbom']).read_text())
         names = {c['name'] for c in bom['components']}
         assert 'is-number' in names and 'craftguild-cli' in names
-        assert not names & {'esbuild', 'typescript', 'picocolors', 'craftguild-cli-build', 'craftguild-core'}
+        assert not names & {'esbuild', 'typescript', 'picocolors', 'craftguild-cli-build', 'craftguild-core', 'figlet-rs'}
         actual = run(web, [embedded['context']['output'], 'asset']).stdout
         assert actual == (web / 'web/dist/app.js').read_bytes()
         print('PASS: actual npm/esbuild standalone and embedded Web, runtime-only SBOM and no frontend Rust probe', flush=True)

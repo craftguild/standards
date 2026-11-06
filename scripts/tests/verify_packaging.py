@@ -1,93 +1,94 @@
-"""Explicit packaging acceptance against the real, already-built host engine."""
+"""Flat delivery retains complete producer seal/inventory/SBOM/output checks."""
 
 import copy
+import hashlib
 import json
 from pathlib import Path
-import shutil
 import subprocess
 import sys
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from package_entry import package as entry
-from package_skill import package as skill
-from public_files import inventory
+from package_delivery import package
+from release_metadata import merge
 
 
-def verify():
-    original = json.loads((ROOT / '.craftguild/craftguild-standards/receipt.json').read_text())
-    with tempfile.TemporaryDirectory(prefix='packaging-acceptance-', dir=ROOT / '.craftguild') as name:
-        base = Path(name)
-        root = base / 'source'
-        for record in inventory(ROOT)['files']:
-            destination = root / record['path']
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(ROOT / record['path'], destination)
-        subprocess.run(['git', 'init', '--quiet', str(root)], check=True)
-        receipt = copy.deepcopy(original)
-        context = receipt['context']
-        context['target_dir'] = str(root / 'target')
-        binary = root / 'target' / context['target'] / context['profile'] / Path(context['output']).name
-        binary.parent.mkdir(parents=True)
-        shutil.copy2(original['context']['output'], binary)
-        context['output'] = str(binary)
-        context['outputs'] = [str(binary)]
-        prepared = receipt['prepared']
-        bom = root / prepared['sbom']
-        bom.parent.mkdir(parents=True)
-        shutil.copy2(ROOT / prepared['sbom'], bom)
-        receipt_file = root / '.craftguild/craftguild-standards/receipt.json'
-        receipt_file.write_text(json.dumps(receipt))
-        entry(root, base / 'control-entry')
-        skill(root, base / 'control-skill.tar.gz')
-        assert {p['name'] for p in json.loads(bom.read_bytes())['metadata']['properties']} == {
-            'craftguild:build', 'craftguild:features'}
-        source = root / 'crates/craftguild-standards/src/execution_process.rs'
-        addition = source.with_name('unsealed_packaging_addition.rs')
-        serial = 0
+def verify(root, destination):
+    receipt_file = root / '.craftguild/craftguild-standards/receipt.json'
+    original = json.loads(receipt_file.read_bytes())
+    binary = Path(original['context']['output'])
+    bom = root / original['prepared']['sbom']
+    package(root, destination / 'host')
+    files = {p.name: p.read_bytes() for p in (destination / 'host').iterdir()}
+    target = original['context']['target']
+    version = original['prepared']['build']['version']
+    stem = f'craftguild-standards-v{version}-{target}'
+    assert set(files) == {stem, stem + '.bom.json', f'craftguild-release-v{version}-{target}.json',
+                          f'SHA256SUMS-{target}.txt'}
+    checksums = ''.join(f'{hashlib.sha256(files[name]).hexdigest()}  {name}\n'
+                        for name in sorted(files) if not name.startswith('SHA256SUMS'))
+    assert files[f'SHA256SUMS-{target}.txt'].decode() == checksums
+    assert files[stem] == binary.read_bytes() and files[stem + '.bom.json'] == bom.read_bytes()
+    assert {p['name'] for p in json.loads(bom.read_bytes())['metadata']['properties']} == {
+        'craftguild:build', 'craftguild:features'}
+    merged = merge(destination / 'host', destination / 'index')
+    assert merged['identity']['revision'] == original['prepared']['build']['commit']
+    assert set(merged['hosts']) == {target}
+    source = root / 'crates/craftguild-standards/src/execution_process.rs'
+    addition = source.with_name('unsealed_packaging_addition.rs')
+    with (root / '.git/info/exclude').open('a') as exclude:
+        exclude.write('\nunsealed_packaging_addition.rs\n')
+    serial = 0
 
-        def rejected(label):
-            nonlocal serial
-            for package, suffix in [(entry, 'entry'), (skill, 'skill.tar.gz')]:
-                serial += 1
-                destination = base / f'{serial}-{suffix}'
-                try:
-                    package(root, destination)
-                except (ValueError, OSError, subprocess.CalledProcessError):
-                    pass
-                else:
-                    raise AssertionError('Packaging accepted ' + label)
-                assert not destination.exists(), 'Rejected packaging published a delivery artifact'
+    def rejected(label):
+        nonlocal serial
+        serial += 1
+        output = destination / ('rejected-' + str(serial))
+        try:
+            package(root, output)
+        except (ValueError, OSError, subprocess.CalledProcessError):
+            pass
+        else:
+            raise AssertionError('Delivery accepted ' + label)
+        assert not output.exists(), 'Rejected delivery published artifacts'
 
-        addition.write_text('pub fn unsealed() {}\n')
-        rejected('added sealed-directory file')
-        # Matching the directory list alone must not authorize an unsealed file.
-        altered = copy.deepcopy(receipt)
-        directory = 'crates/craftguild-standards/src'
-        assert directory in altered['prepared']['inventories']
-        altered['prepared']['inventories'][directory].append(str(addition.relative_to(root)))
-        receipt_file.write_text(json.dumps(altered))
-        rejected('inventory entry without a sealed hash')
-        receipt_file.write_text(json.dumps(receipt))
-        addition.unlink()
-        before = source.read_bytes()
-        source.write_bytes(before + b'// changed without rebuilding\n')
-        rejected('changed source')
+    addition.write_text('pub fn unsealed() {}\n')
+    rejected('ignored added sealed-directory input')
+    altered = copy.deepcopy(original)
+    altered['prepared']['inventories']['crates/craftguild-standards/src'].append(str(addition.relative_to(root)))
+    receipt_file.write_text(json.dumps(altered))
+    rejected('inventory entry without sealed-file hash')
+    receipt_file.write_text(json.dumps(original))
+    addition.unlink()
+    # Keep Git identity clean to exercise sealed input validation independently.
+    subprocess.run(['git', 'update-index', '--assume-unchanged', str(source.relative_to(root))], cwd=root, check=True)
+    before = source.read_bytes()
+    try:
+        source.write_bytes(before + b'// changed sealed source\n')
+        rejected('changed sealed source')
         source.unlink()
-        rejected('missing source')
+        rejected('missing sealed source')
+    finally:
         source.write_bytes(before)
-        before = bom.read_bytes()
-        bom.write_bytes(b'{}')
-        rejected('altered SBOM')
-        bom.write_bytes(before)
-        before = binary.read_bytes()
-        binary.write_bytes(b'tampered engine')
-        rejected('altered binary')
-        binary.write_bytes(before)
-        entry(root, base / 'restored-entry')
-    print('PASS: real entry/skill packaging rejects added, unsealed, changed, missing, SBOM and binary inputs; unchanged control succeeds')
+        subprocess.run(['git', 'update-index', '--no-assume-unchanged', str(source.relative_to(root))], cwd=root, check=True)
+    for path, label in [(bom, 'altered SBOM'), (binary, 'altered binary')]:
+        before = path.read_bytes()
+        try:
+            path.write_bytes(b'tampered')
+            rejected(label)
+        finally:
+            path.write_bytes(before)
+    package(root, destination / 'restored')
+    assert files == {p.name: p.read_bytes() for p in (destination / 'restored').iterdir()}
+    print('PASS: flat delivery exact inventory/checksums and unchanged control; added/unsealed/changed/missing/SBOM/binary refusal')
+    return destination / 'index' / f'craftguild-release-v{version}.json'
 
 
 if __name__ == '__main__':
-    verify()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('root', type=Path)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    args.output.mkdir(parents=True, exist_ok=False)
+    verify(args.root.resolve(), args.output.resolve())

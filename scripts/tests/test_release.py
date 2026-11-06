@@ -99,27 +99,183 @@ lockfile="package-lock.json"
         self.git(self.root, 'tag', 'v0.1.0')
         self.assertIsNone(self.release()['next'])
 
+    def set_version(self, version):
+        for name in ['Cargo.toml', 'Cargo.lock', 'package.json', 'package-lock.json']:
+            self.write(name, (self.root / name).read_text().replace('0.1.0', version))
+        self.write('craftguild.toml', (self.root / 'craftguild.toml').read_text().replace('initial_version="0.1.0"', 'initial_version="' + version + '"'))
+        self.commit('chore: configure fixture version')
+
+    def test_explicit_major_tagged_empty_fix_nonbumping_and_breaking_ranges(self):
+        self.baseline()
+        for message in [None, 'fix: adjust behavior', 'docs: describe behavior',
+                        'feat!: remove behavior']:
+            self.git(self.root, 'reset', '--hard', 'v0.1.0')
+            if message:
+                self.change(message)
+            plan = self.release('--major')
+            self.assertEqual(plan['next'], '1.0.0')
+            self.assertEqual(plan['bump'], 'major')
+            self.assertEqual(plan['mode'], 'explicit-major')
+        self.release('--major', '--apply')
+        before = {p.name: p.read_bytes() for p in (self.root / 'docs/releases').iterdir()}
+        self.assertIn('mode conflict', self.release('--apply', success=False))
+        self.assertTrue(self.release('--major', '--apply')['prepared'])
+        self.commit('chore(release): prepare explicit major')
+        self.assertIn('mode conflict', self.release(success=False))
+        self.assertEqual(self.release('--major', '--apply')['next'], '1.0.0')
+        self.assertEqual(before, {p.name: p.read_bytes() for p in (self.root / 'docs/releases').iterdir()})
+        for name in ['package.json', 'package-lock.json']:
+            self.assertEqual(json.loads((self.root / name).read_text())['version'], '1.0.0')
+        self.assertRegex((self.root / 'Cargo.lock').read_text(), r'version\s*=\s*"1.0.0"')
+
+    def test_normal_preparation_rejects_explicit_mode_before_and_after_commit(self):
+        self.baseline()
+        self.change('fix: adjust behavior')
+        self.release('--apply')
+        for committed in [False, True]:
+            if committed:
+                self.commit('chore(release): prepare patch')
+            before = self.git(self.root, 'status', '--porcelain')
+            self.assertIn('mode conflict', self.release('--major', '--apply', success=False))
+            self.assertEqual(before, self.git(self.root, 'status', '--porcelain'))
+            self.assertEqual(self.release('--apply')['next'], '0.1.1')
+
+    def test_mode_conflict_precedes_product_preparation_hooks(self):
+        self.write('hook.py', 'from pathlib import Path\nPath(".craftguild/hook.json").write_text("{}")\n')
+        config = (self.root / 'craftguild.toml').read_text().replace('schema_version=1', 'schema_version=2')
+        self.write('craftguild.toml', config + '''
+[[operations]]
+name="release"
+artifact="demo"
+[[operations.hooks]]
+id="observe"
+stage="prepare"
+argv=["python3", "hook.py"]
+inputs=["hook.py"]
+outputs=[".craftguild/hook.json"]
+''')
+        self.commit('chore: configure release hook')
+        self.release('--major', '--apply')
+        marker = self.root / '.craftguild/hook.json'
+        self.assertTrue(marker.is_file())
+        marker.unlink()
+        before = {str(p.relative_to(self.root)): p.read_bytes()
+                  for p in self.root.rglob('*') if p.is_file() and '.git' not in p.parts}
+        self.assertIn('mode conflict', self.release('--apply', success=False))
+        self.assertEqual(before, {str(p.relative_to(self.root)): p.read_bytes()
+                                 for p in self.root.rglob('*') if p.is_file() and '.git' not in p.parts})
+
+    def test_explicit_major_initial_and_later_major_releases(self):
+        self.set_version('1.2.3')
+        self.assertEqual(self.release()['next'], '1.2.3')
+        self.assertEqual(self.release('--major')['next'], '2.0.0')
+        self.release('--major', '--apply')
+        self.commit('chore(release): prepare initial explicit major')
+        self.git(self.root, 'tag', 'v2.0.0')
+        self.change('feat!: replace operation')
+        self.assertEqual(self.release()['next'], '3.0.0')
+        self.assertEqual(self.release('--major')['next'], '3.0.0')
+        self.release('--major', '--apply')
+        self.assertEqual(self.release('--major')['next'], '3.0.0')
+
+    def test_explicit_major_from_a_tagged_one_x_group(self):
+        self.set_version('1.2.3')
+        self.git(self.root, 'tag', 'v1.2.3')
+        self.change('fix: repair stable operation')
+        self.assertEqual(self.release('--major')['next'], '2.0.0')
+        self.release('--major', '--apply')
+        self.assertEqual(self.release('--major', '--apply')['next'], '2.0.0')
+        self.assertIn('mode conflict', self.release('--apply', success=False))
+
+    def test_explicit_major_initial_zero_and_legacy_receipt_is_not_authorization(self):
+        self.assertEqual(self.release('--major')['next'], '1.0.0')
+        self.release('--major', '--apply')
+        path = self.root / 'docs/releases/v1.0.0.json'
+        receipt = json.loads(path.read_text())
+        del receipt['mode']
+        path.write_text(json.dumps(receipt))
+        self.assertIn('missing preparation intent', self.release('--apply', success=False))
+        self.assertIn('missing preparation intent', self.release('--major', '--apply', success=False))
+        receipt['schema_version'] = 1
+        path.write_text(json.dumps(receipt))
+        self.assertIn('no explicit MAJOR authorization', self.release('--apply', success=False))
+        self.assertIn('mode conflict', self.release('--major', '--apply', success=False))
+
+    def test_major_keeps_signature_message_dirty_and_stale_guards(self):
+        self.baseline()
+        self.change('not conventional')
+        self.assertIn('Conventional', self.release('--major', '--apply', success=False))
+        self.git(self.root, 'reset', '--hard', 'v0.1.0')
+        self.change('fix: adjust')
+        # Deliberately unsigned negative fixture; never touches real history.
+        subprocess.run(['git', '-c', 'user.name=Conformance',
+                        '-c', 'user.email=conformance@example.invalid', 'commit',
+                        '--amend', '--no-gpg-sign', '-qm', 'fix: unsigned'],
+                       cwd=self.root, env=self.git.environment, check=True)
+        self.assertIn('lacks an OpenPGP signature', self.release('--major', '--apply', success=False))
+        self.git(self.root, 'reset', '--hard', 'v0.1.0')
+        self.write('unrelated', 'preserve')
+        self.assertIn('clean working tree', self.release('--major', '--apply', success=False))
+        (self.root / 'unrelated').unlink()
+        self.release('--major', '--apply')
+        self.write('package.json', '{}')
+        self.assertIn('drift', self.release('--major', '--apply', success=False))
+
+    def test_signed_zero_patch_feature_and_breaking_forms_at_high_minor(self):
+        self.set_version('0.99.8')
+        self.git(self.root, 'tag', 'v0.99.8')
+        for message, expected in [
+            ('fix: repair', '0.99.9'),
+            ('feat: extend', '0.100.0'),
+            ('refactor!: replace', '0.100.0'),
+            ('refactor(api)!: replace again', '0.100.0'),
+            ('fix: adapt\n\nBREAKING CHANGE: migrate callers', '0.100.0'),
+            ('fix: adapt\n\nBREAKING-CHANGE: migrate again', '0.100.0'),
+        ]:
+            self.change(message)
+            plan = self.release()
+            self.assertEqual(plan['next'], expected)
+            self.assertIn(self.git(self.root, 'rev-parse', 'HEAD'), plan['notes'])
+        self.assertIn('migrate callers', plan['notes'])
+        self.assertIn('migrate again', plan['notes'])
+
+    def test_signed_zero_zero_patch_and_one_x_normal_semver(self):
+        self.set_version('0.0.8')
+        self.git(self.root, 'tag', 'v0.0.8')
+        self.change('fix: repair')
+        self.assertEqual(self.release()['next'], '0.0.9')
+        self.change('feat!: replace')
+        self.assertEqual(self.release()['next'], '0.1.0')
+        self.release('--major', '--apply')
+        self.commit('chore(release): prepare major')
+        self.git(self.root, 'tag', 'v1.0.0')
+        for message, expected in [('fix: repair', '1.0.1'), ('feat: add', '1.1.0'),
+                                  ('feat!: replace', '2.0.0')]:
+            self.change(message)
+            self.assertEqual(self.release()['next'], expected)
+
     def test_bumps_and_maximum_once(self):
         self.baseline()
         cases = [('fix(parser): correct parsing', '0.1.1'),
                  ('feat(api): add operation', '0.2.0'),
-                 ('refactor(api)!: remove operation', '1.0.0')]
+                 ('refactor(api)!: remove operation', '0.2.0')]
         for message, version in cases:
             self.change(message)
             plan = self.release()
             self.assertEqual(plan['next'], version)
             self.assertIn(message, plan['notes'])
         plan = self.release('--apply')
-        self.assertEqual(plan['next'], '1.0.0')
-        self.assertEqual(json.loads((self.root / 'package.json').read_text())['version'], '1.0.0')
+        self.assertEqual(plan['next'], '0.2.0')
+        self.assertEqual(plan['bump'], 'minor')
+        self.assertEqual(json.loads((self.root / 'package.json').read_text())['version'], '0.2.0')
         lock = json.loads((self.root / 'package-lock.json').read_text())
-        self.assertEqual(lock['version'], '1.0.0')
-        self.assertEqual(lock['packages']['']['version'], '1.0.0')
+        self.assertEqual(lock['version'], '0.2.0')
+        self.assertEqual(lock['packages']['']['version'], '0.2.0')
         self.assertEqual(lock['packages']['node_modules/other']['version'], '9.0.0')
         metadata = json.loads(subprocess.check_output(
             ['cargo', 'metadata', '--locked', '--offline', '--no-deps', '--format-version=1'],
             cwd=self.root, env=self.git.environment))
-        self.assertEqual(metadata['packages'][0]['version'], '1.0.0')
+        self.assertEqual(metadata['packages'][0]['version'], '0.2.0')
         self.assertTrue(self.release()['prepared'])
 
     def test_apply_build_derived_evidence_and_reapply_preserve_plan(self):
@@ -175,7 +331,7 @@ outputs=[".craftguild/derived/release.json"]
         for token in ['BREAKING CHANGE', 'BREAKING-CHANGE']:
             self.change('fix: adapt contract\n\n' + token + ': callers must migrate')
             plan = self.release()
-            self.assertEqual(plan['next'], '1.0.0')
+            self.assertEqual(plan['next'], '0.2.0')
             self.assertIn('callers must migrate', plan['notes'])
         self.change('not a conventional message')
         self.assertIn('Conventional', self.release(success=False))
@@ -256,6 +412,13 @@ lockfile="ui/package-lock.json"
         self.assertEqual(self.release('--group', 'ui', '--apply')['next'], '2.1.0')
         self.assertEqual(json.loads((self.root / 'ui/package.json').read_text())['version'], '2.1.0')
         self.assertEqual(json.loads((self.root / 'package.json').read_text())['version'], '0.1.0')
+        self.commit('chore(release): prepare UI feature')
+        self.git(self.root, 'tag', 'ui-v2.1.0')
+        self.write('ui/main.js', 'export const replacement = true;\n')
+        self.change('feat!: replace shared contract')
+        self.assertEqual(self.release('--group', 'demo')['next'], '0.2.0')
+        self.assertEqual(self.release('--group', 'ui')['next'], '3.0.0')
+        self.assertEqual(self.release('--group', 'ui', '--major')['next'], '3.0.0')
 
 
 if __name__ == '__main__':

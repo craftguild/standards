@@ -202,3 +202,13 @@ writing. Both template and generated shell remain measured implementation code.
 omitting the group requires exactly one group among installer declarations.
 No standard-layout opt-in is needed to package legacy receipts. See the
 [distribution guide](../guides/installers.md) for verification and runtime rules.
+
+
+## Initialization and context (source extension)
+
+ADR 0004 adds an unfinished valid-TOML starter with `artifacts = []` and standard
+Rust output layout. Build/check validation still rejects the empty selection.
+Init preserves any existing config and never infers packages, source roles or
+adapter gates. Prime reads preparation status independently of operational
+validation and returns the fixed engine's embedded documents. See
+[initialization](initialization.md); published v0.3.0 does not provide it.

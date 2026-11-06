@@ -1,6 +1,6 @@
 //! Guarded file replacement and immutable preparation receipts.
 
-use super::{history, versions::Group, Plan};
+use super::{history, versions, versions::Group, Mode, Plan};
 use craftguild_core::{paths, Result};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -53,7 +53,7 @@ fn destination(root: &Path, name: &str) -> Result<PathBuf> {
     Ok(target)
 }
 
-pub fn pending(root: &Path, group: &Group) -> Result<Option<Plan>> {
+pub fn pending(root: &Path, group: &Group, mode: Mode) -> Result<Option<Plan>> {
     let directory = destination(root, &group.notes)?;
     if !directory.exists() {
         return Ok(None);
@@ -64,22 +64,43 @@ pub fn pending(root: &Path, group: &Group) -> Result<Option<Plan>> {
         if path.extension().and_then(|s| s.to_str()) != Some("json") {
             continue;
         }
-        let plan: Plan = serde_json::from_slice(&fs::read(&path)?)?;
+        let document: serde_json::Value = serde_json::from_slice(&fs::read(&path)?)?;
+        let plan: Plan = serde_json::from_value(document.clone())?;
         if plan.group != group.id {
             continue;
         }
         if !history::git(root, &["tag", "--list", &plan.tag])?.is_empty() {
             continue;
         }
+        if plan.schema_version == 2 && document.get("mode").is_none() {
+            return Err("Pending release receipt is missing preparation intent".into());
+        }
+        if plan.mode != mode {
+            return Err("Pending release mode conflict; retry with its original --major intent or explicitly revert preparation".into());
+        }
+        if plan.mode == Mode::Normal
+            && versions::stable(&plan.current)?.major == 0
+            && plan
+                .next
+                .as_deref()
+                .map(versions::stable)
+                .transpose()?
+                .is_some_and(|v| v.major > 0)
+        {
+            return Err("Historical receipt has no explicit MAJOR authorization; explicitly revert preparation".into());
+        }
         if found.is_some() {
             return Err("Multiple pending release preparations".into());
         }
-        if plan.schema_version != 1
+        if ![1, 2].contains(&plan.schema_version)
             || plan.config_hash != paths::digest(&serde_json::to_vec(group)?)
             || !history::ancestor(root, &plan.head, "HEAD")?
         {
             return Err("Pending release configuration/ancestry changed".into());
         }
+        let head = history::git(root, &["rev-parse", "HEAD"])?;
+        history::baseline(root, group, &head)?;
+        history::notes(root, group, Some(&plan.head), &head, &plan.current)?;
         let receipt = plan
             .receipt_path
             .as_deref()
@@ -137,6 +158,9 @@ pub fn apply(root: &Path, plan: &Plan) -> Result<()> {
         .open(&lock)
         .map_err(|e| format!("Cannot lock release preparation: {e}"))?;
     let _guard = Lock(lock);
+    if !history::git(root, &["tag", "--list", &plan.tag])?.is_empty() {
+        return Err("Target tag already exists; never overwrite releases".into());
+    }
     if history::git(root, &["rev-parse", "HEAD"])? != plan.head || !history::dirty(root)?.is_empty()
     {
         return Err("HEAD or working tree changed since preview".into());

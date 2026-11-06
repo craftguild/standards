@@ -51,17 +51,11 @@ inputs, SBOM or binary differ, and never probes Rust/npm or bootstraps an engine
 Build/setup must first run without privileges. See the
 [execution guide](orchestration.md) for compatible consumer entries.
 
-Package a host-specific, self-contained skill bundle after building:
-
-```sh
-python3 scripts/package_skill.py --output target/craftguild-standardize.tar.gz
-```
-
-The bundle contains the skill, exact normative rules, schemas, licenses, a hash
-manifest, compatible entry bundle and final host executable. Packaging uses the
-verified build receipt, including a selected profile/output directory. Extract it into the chosen agent's skill
-directory and add its `assets/bin` directory to the command search path when using
-the skill. Creating the bundle never installs or alters global skills.
+Rules and adoption guidance are embedded, sealed inputs of the engine. Consumer
+`init` generates a short local skill and entry; no skill archive or global skill
+installation is produced. See the [initialization design](../design/initialization.md)
+and [execution guide](orchestration.md). Tests use isolated release fixtures and
+transport stubs, never unpublished revisions presented as real consumer pins.
 
 Before publishing, review `python3 scripts/public_files.py`. An explicit
 `--export` writes that inventory to a new directory for fresh public history.
@@ -75,8 +69,11 @@ a clean checkout at that same revision:
 python3 scripts/package_delivery.py --output target/delivery
 ```
 
-It creates the executable, consumer SBOM, matching entry/skill archives, release
-metadata and checksums. It invokes existing receipt validation and never builds
+It creates the flat executable, matching consumer SBOM, schema 2 host release
+metadata and target checksums. Combine independently qualified host deliveries
+with `python3 scripts/release_metadata.py INPUT --output target/release-index`
+to produce the versioned index used by init. Only assets actually present are
+listed; all hosts must share version, full revision and compatibility. It invokes existing receipt validation and never builds
 or publishes. CI retains these assets for the exact tested commit; tagging and
 publication remain separate authorized operations.
 

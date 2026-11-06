@@ -1,7 +1,7 @@
 # Build orchestration
 
 This is the execution contract for ADR 0002. It is not part of the published
-v0.1.0 bundle. Package versions, the normative rules baseline and execution
+v0.1.0 engine. Package versions, the normative rules baseline and execution
 compatibility identifiers are versioned separately.
 
 ## Compatibility
@@ -22,8 +22,7 @@ new builds never generate that legacy SBOM metadata. Git revision identity and
 explicit actually shipped asset/component evidence remain distinct from a source
 inventory. No package/release version changes are implied by this schema change.
 The orchestration entry/engine protocol is `craftguild-execution-1`; a launcher
-must verify that protocol before dispatch. The release preparation receipt format
-does not change.
+must verify that protocol before dispatch. ADR 0005 release preparation receipts use schema 2 to retain explicit-MAJOR intent.
 
 ## Selection and drivers
 
@@ -211,24 +210,18 @@ the captured bytes with an unchecked second read; a receipt/hash mismatch fails.
 
 ## Standalone entry and dispatch
 
-A distribution bundle contains `make/common.mk`, a launcher, engine, protocol
-metadata, provenance and exact file hashes. A product keeps the entry files and
-a fixed bundle descriptor, resolves only its repository-local cache and verifies
-the complete bundle before execution. Explicit setup may acquire/build a pinned
-source; ordinary install never does. A source export identifies itself by content
-digest and source-development provenance; it never claims a public revision.
-Signed isolated Git fixtures may instead use their verified full revision.
-No mutable remote include, global engine or sibling checkout is required.
-Source-export provenance carries an aggregate export digest; its detailed source
-inventory stays in the producer's local `.craftguild/source-exports/` ledger.
+ADR 0004 replaces execution/skill archives with a fixed release reference and
+small shared entry. See [initialization](initialization.md) for schema 2 reference
+ownership, embedded context, entry protocol, acquisition, cache validation and
+rollback. Entry compatibility is `craftguild-entry-1`; execution receipts retain
+`craftguild-execution-1`. Only init and explicit setup may acquire an engine;
+ordinary operations never compile/download a replacement or resolve Latest.
 
-Packaging first hash-verifies the engine and invokes its `verify-receipt`
-operation. The common verifier checks the complete prepared seal, including exact
-directory inventories and their sealed-file linkage, SBOM and actual outputs.
-Added files invalidate entry and skill packaging until a matching rebuild;
-packaging cannot relabel an earlier binary with newer source provenance.
-The bundle's file hash manifest describes only the files actually delivered in
-that bundle, rather than publishing the developer's repository source ledger.
+Delivery first validates complete prepared seals, exact inventories and their
+sealed-file linkage, SBOM and outputs through the common receipt/package owner.
+Changed or added build inputs invalidate delivery until rebuild. Flat binaries,
+matching SBOMs, checksums and versioned host metadata replace both archives.
+Detailed source integrity ledgers stay producer-local.
 
 Make, CLI and CI dispatch build/prepare/install/test/check/acceptance/release to
 the same engine. Test executes ordinary adapter/repository test gates; check

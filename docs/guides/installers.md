@@ -1,7 +1,7 @@
 # Release assets and standalone installers
 
 These commands are implemented in the source engine extending ADR 0003. They are
-not available in published v0.2.0. Keep a matching engine and entry bundle together;
+not available in published v0.2.0. Keep a matching engine and fixed entry together;
 use a source export during development, without inventing a public revision pin.
 
 Declare an executable artifact, its release group and an installer in
@@ -32,7 +32,7 @@ output validation. The result contains `<command>-v<version>-<target>`, the same
 name plus `.bom.json`, and `SHA256SUMS-<target>.txt`. Package reads output paths
 from receipts and never builds, resolves dependencies or acquires an engine.
 The launcher requires an existing verified cache; run setup/build first.
-Standards' delivery wrapper adds entry/skill archives and release identity, then
+Standards' delivery wrapper adds flat versioned host release metadata, then
 hashes every asset except checksum files. Local source ledgers stay local.
 
 ## Download installation

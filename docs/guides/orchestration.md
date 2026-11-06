@@ -1,90 +1,60 @@
 # Build execution
 
-The engine implements ADR 0002. Configuration schema 2, prepared seal schema 2 and
-the `craftguild-execution-1` entry protocol are distinct from package versions and
-the normative 0.1.0 baseline. The published v0.1.0 revision has no execution entry.
-The [execution contract](../design/orchestration.md) defines all fields and precedence.
+The source engine implements ADR 0004 fixed-reference initialization and prime.
+Published v0.3.0 and earlier releases retain their old delivery contracts; they
+cannot initialize this workflow. A release implementing this source is required
+for published adoption. Do not pin an older asset to unpublished source.
 
-Subprocess execution currently requires a Unix host. Non-Unix execution is refused
-before spawning tools; Windows engine qualification is separate from consumer
-library compatibility.
-
-Build and export a host-specific source bundle inside the standards checkout:
+In the selected repository's root, use a clean published implementing tool:
+Python 3 and curl must be available for initialization/setup. After setup, prime
+needs Python 3 and the verified cache, with no network or compiler.
 
 ```sh
-make build
-python3 scripts/package_entry.py --output target/execution-entry
+craftguild-standards init
+make prime
+make prime PRIME_ARGS="--topic configuration"
 ```
 
-Packaging verifies the engine receipt, sealed inputs and exact embedded SBOM.
-Its common receipt verifier includes file additions within sealed directories;
-rebuild before packaging when any sealed input or inventory changes.
-The export identifies source provenance by digest. A release bundle additionally
-records its clean build's full Git revision; a local export never invents a public
-revision. Its full source inventory remains under `.craftguild` in the producer
-checkout. Keep the complete export together when copying it to a
-standalone consumer as `standards/execution`:
+Init preserves existing config, product contracts and Make recipes. When a
+Makefile already exists, wire `include standards/make/common.mk` and its targets
+explicitly without replacing product recipes. The generated starter is valid
+TOML with no artifacts; configure the product before build/check. See the
+[initialization design](../design/initialization.md) for ownership and rollback.
+No Git initialization, dependency migration or global skill installation occurs.
 
-```makefile
-ARTIFACT ?= example-cli
-include standards/execution/make/common.mk
-```
+Commit the fixed reference, thin entry, local skill and product configuration.
+The entry selects only exact pinned host assets in `.craftguild/engine/`.
+Explicit `make setup` restores a missing cache. Build, prepare, test/check,
+release, install, package and prime never download, compile a replacement engine,
+resolve Latest or consult sibling checkouts. Invalid caches fail closed. Hash,
+revision, host and compatibility validation precede operational execution.
 
-`make setup` verifies and copies the vendored engine into a repository-local cache.
-Build can perform that setup on first use. No sibling checkout, global engine or
-remote include is required. Entry/engine protocol mismatch, changed hashes and
-unsafe paths fail closed. Install and package require an existing verified cache and output;
-it never sets up, downloads or builds anything.
+Prime is read-only offline Markdown from the pinned engine's embedded documents,
+even when the invoking installed tool differs. Missing, incomplete or malformed
+product config is reported as preparation status, not successful conformance.
+Topics and full-revision source links need no copied rules tree.
 
-Declare artifacts and bounded hooks in schema 2. CLI selectors override their
-environment equivalents, then configuration, then defaults. `ARTIFACT`, `VARIANT`,
-`TOOLCHAIN`, `TARGET`, `PROFILE`, `FEATURES`, `NO_DEFAULT_FEATURES` and
-`CARGO_TARGET_DIR` work with the common Make entry. Examples:
+After configuration, use the common operations:
 
 ```sh
 make build PROFILE=debug
-python3 standards/execution/launcher.py build --artifact example-cli --profile release
-make install PREFIX=/opt/example DESTDIR=/tmp/example-stage
+make build TARGET=x86_64-unknown-linux-gnu CARGO_TARGET_DIR=products
+python3 standards/launcher.py build --artifact example-cli --profile release
+make check
+make acceptance
+make release RELEASE_ARGS="--major --json"
 ```
 
-CI may invoke the verified cached engine directly with the same arguments from
-the consumer root. A named variant or target setting can retain platform-specific
-compiler prefixes and output layouts. Libraries declare target name and formats;
-frontend artifacts use actual bundler evidence and do not probe Rust tools.
+The artifact name and target here are examples requiring real product declarations
+and installed toolchains. Selectors, bounded argv hooks, operation preparation,
+receipts and dependency evidence follow the [execution contract](../design/orchestration.md).
+New Rust adoption uses `<target-dir>/<target-triple>/<profile>/<file>` for native
+and cross outputs. Products retain SDK, ABI, generator and domain gates; common
+engine/font/measurement tests remain in standards. No font-renderer runtime or
+development dependency is required merely to adopt the common entry.
 
-The engine records the resolved plan and ordered results under
-`.craftguild/<command>/runs/`. `process.jsonl` captures argv, output and failure or
-cancellation. A successful build publishes the verified output and `receipt.json`
-last. Failed attempts retain the previous verified output/receipt and their own
-failure history. Source inventories and hashes stay in these local records;
-consumer SBOM metadata carries build identity and effective features.
-
-Operation declarations prepare/build the needed artifacts before ordinary gates.
-Keep acceptance explicit. Product hooks retain SDK, ABI and exact generation
-contracts; they do not repeat the engine's orchestration. Actual toolchains, SDKs
-and locked dependencies are prerequisites. Record unavailable platforms separately
-from successful local checks; exporting this bundle does not authorize product
-adoption or publication.
-
-Use `acceptance --gate ID` (or `make acceptance ACCEPTANCE_ARGS="--gate ID"`) when a public
-alias must run only one declared acceptance gate. Ordinary test/check entries do
-not include acceptance commands.
-
-## Published host bundles
-
-Select an explicit release and host target from the repository's release assets.
-Verify its `SHA256SUMS-<target>.txt`, then extract the execution archive and keep
-the complete `craftguild-execution` directory together. The matching release JSON
-records the full source revision and entry bundle digest. Pin consumer libraries
-to that full HTTPS Git revision, and retain the exact bundle descriptor in the
-consumer checkout. Do not use a moving branch or an implicit latest release.
-
-The skill archive carries the same entry plus the rules and host executable.
-Release assets omit the producer's source-file ledger and local receipts. Host
-qualification applies only where the recorded CI/acceptance ran; a cross-target
-binary or bundle name alone is not a runtime qualification.
-
-The [installer guide](installers.md) covers the ADR 0003 source extension: standard
-Rust output mode, deterministic installer generation and receipt-backed packaging.
-Use `make installer INSTALLER_ARGS=--check` for drift checking and
-`make package PACKAGE_ARGS="--group ID --output DIR"` for a fresh delivery.
+Source-build `make install` copies only a verified output and honors PREFIX,
+BINDIR and DESTDIR. Download installation has a separate
+[installer contract](installers.md). Neither route is authorization to alter a
+real user/system destination. Product adoption and actual publication remain
+separate requests; report host qualification only for executions actually run.

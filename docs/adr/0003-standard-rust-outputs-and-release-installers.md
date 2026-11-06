@@ -1,6 +1,6 @@
 # ADR 0003: Standard Rust outputs and release installers
 
-Status: Accepted
+Status: Accepted; standards bundle additions superseded by [ADR 0004](0004-repository-initialization-and-prime.md)
 
 Extends [ADR 0002](0002-standards-owned-build-orchestration.md). This records the
 approved design; implementation evidence is recorded in the

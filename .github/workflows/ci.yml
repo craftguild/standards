@@ -5,6 +5,7 @@ on:
   pull_request:
 permissions:
   contents: read
+  actions: read
 jobs:
   platform:
     strategy:
@@ -47,17 +48,27 @@ jobs:
       - run: make build
       - run: make acceptance
       - run: python3 scripts/verify_examples.py
-      - run: python3 scripts/package_entry.py --output target/execution-entry
-      - run: python3 scripts/tests/verify_execution.py target/execution-entry
-      - run: python3 scripts/tests/verify_installers.py target/execution-entry
-      - run: python3 scripts/tests/verify_packaging.py
-      - run: python3 scripts/package_skill.py --output target/craftguild-standardize.tar.gz
-      - run: python3 scripts/verify_skill.py target/craftguild-standardize.tar.gz
+      - run: python3 scripts/tests/verify_initialization.py
       - run: python3 scripts/package_delivery.py --output target/delivery
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: delivery-${{ runner.os }}-${{ runner.arch }}
           path: target/delivery/*
+          if-no-files-found: error
+  release-index:
+    needs: platform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Collect qualified flat host deliveries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'delivery-*' --dir target/host-deliveries
+      - run: python3 scripts/release_metadata.py target/host-deliveries --output target/release-index
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: release-index
+          path: target/release-index/*
           if-no-files-found: error
   consumer-msrv:
     runs-on: ubuntu-latest

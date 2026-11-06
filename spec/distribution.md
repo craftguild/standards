@@ -43,3 +43,13 @@ removes only the regular command file and preserves configuration/data. Schema 2
 installer declarations select executable artifacts, their owning release group,
 GitHub repository and safe relative script output. Runtime options select a stable
 version and absolute destination; ordinary checks reject generated script drift.
+
+
+ADR 0004 source delivery replaces execution/skill archives with flat host binaries,
+matching SBOMs, target checksums and versioned release metadata. The release index
+names exact full revision, baseline, entry/execution compatibility and exact HTTPS
+asset SHA-256 values by supported host. The binary embeds its matching canonical
+contracts and adoption/configuration guidance as owned, sealed build inputs.
+Init commits only a fixed reference, common entry, short local skill and product
+configuration. It never relabels old assets as unpublished features. Published
+v0.3.0 and earlier assets/notes/receipts retain their original contracts.

@@ -47,3 +47,17 @@ references and generation provenance, then commit consumers and build final
 binaries from clean public commits. Do not remove old hashes before replacing
 their references. Ordinary standardization is not publication/install/service
 authorization; honor the later request's actual scope.
+
+
+For later authorized adoption of a release implementing ADR 0004, run init from
+that product's explicit root, then prime and relevant topics. Preserve existing
+Make/config/contracts; finish real configuration and wire the shared entry.
+Standards owns font-renderer, measurement and common-engine tests. Do not retain
+an obsolete local adapter's font tests by moving them into product core or adding
+figlet-rs/vendor. Keep SDK/ABI, canonical generation and domain gates; add only
+uncovered actual connection checks. General measurement gaps remain upstream.
+Published v0.3.0 lacks this workflow; wait for an implementing release instead of
+inventing a public consumer pin. Optional old bundle-based pilot migration scripts
+have been retired. Their common guarantees are covered by standards' execution,
+flat entry, packaging and standalone-consumer tests; actual product gates remain
+with the unmodified products.

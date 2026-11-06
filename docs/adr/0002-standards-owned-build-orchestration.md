@@ -1,6 +1,6 @@
 # ADR 0002: Build orchestration in standards
 
-Status: Accepted
+Status: Accepted; bundle distribution superseded by [ADR 0004](0004-repository-initialization-and-prime.md)
 
 Extends [ADR 0001](0001-artifact-identity-and-offline-presentation.md).
 The implementation uses versioned configuration, seals and an entry protocol.

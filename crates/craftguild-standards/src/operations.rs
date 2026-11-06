@@ -28,6 +28,9 @@ pub fn run<W: Write>(
     }
     let root = std::env::current_dir()?.canonicalize()?;
     let config = config::load(&root)?;
+    if name == "release" {
+        crate::release::preflight(&root, &config, args)?;
+    }
     let Some(operation) = config
         .operations
         .iter()

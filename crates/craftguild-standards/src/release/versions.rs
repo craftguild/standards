@@ -6,6 +6,37 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, path::Path};
 use toml_edit::{value, DocumentMut};
 
+/// Select the effective increment once, separately from breaking-change notes.
+pub fn select(
+    current: &str,
+    inferred: super::conventional::Bump,
+    initial: bool,
+    mode: super::Mode,
+) -> Result<(super::conventional::Bump, String)> {
+    use super::{conventional::Bump, Mode};
+    let mut next = stable(current)?;
+    let bump = match mode {
+        Mode::ExplicitMajor => Bump::Major,
+        Mode::Normal if initial => Bump::None,
+        Mode::Normal if next.major == 0 && inferred == Bump::Major => Bump::Minor,
+        Mode::Normal => inferred,
+    };
+    match bump {
+        Bump::Major => {
+            next.major = next.major.checked_add(1).ok_or("Version overflow")?;
+            next.minor = 0;
+            next.patch = 0;
+        }
+        Bump::Minor => {
+            next.minor = next.minor.checked_add(1).ok_or("Version overflow")?;
+            next.patch = 0;
+        }
+        Bump::Patch => next.patch = next.patch.checked_add(1).ok_or("Version overflow")?,
+        Bump::None => (),
+    }
+    Ok((bump, next.to_string()))
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Group {

@@ -1,9 +1,9 @@
 # Application workflow
 
-Read the matching packaged `standards/` contracts for CLI, distribution, quality,
-development and publication. In the source repository these are the canonical
-[`spec/` documents](../../../spec/README.md); release packaging copies those exact
-files into this reference directory. The package manifest identifies their hashes.
+In an initialized consumer read matching contracts through `make prime` and
+`make prime PRIME_ARGS="--topic NAME"`. The fixed reference selects the engine's
+embedded documents; source links include its full revision. In the standards
+checkout the canonical authority is [`spec/`](../../../spec/README.md).
 
 ## Investigate and map differences
 
@@ -60,12 +60,14 @@ commands. Missing tools or an empty argv are failures.
 
 ## Build execution
 
-For a request that includes build orchestration, use the packaged
-`assets/execution` entry and schema 2 declarations described by the
-[execution contract](orchestration.md). Copy the complete verified entry, including
-its descriptor and vendored bundle, into the selected repository. Use a real fixed
-revision for released adoption or explicitly identify a source export for local
-development. Keep toolchain requirements separate from consumer-library MSRV.
+For authorized adoption, use `craftguild-standards init` from the explicit
+product root, then prime and finish real configuration. An existing Makefile
+requires explicit shared-include wiring; preserve its recipes. Commit the small
+reference/entry, local skill and config. Only init and explicit `make setup`
+acquire verified pinned host assets. Ordinary operations fail with setup guidance
+when cache is missing; no archive loader, sibling fallback or implicit bootstrap
+is provided. New pins require a clean published implementing release. Published
+v0.3.0 does not provide this workflow; never invent an unpublished consumer pin.
 
 ### Adopt the shared output layout
 
@@ -145,7 +147,10 @@ must work from only the binary without tools, valid configuration or state write
 Configure explicit release groups, synchronized Cargo/npm version owners and
 separate independent artifacts. Use the common `release --json` preview followed
 by `release --apply` through `make release`; do not copy version/history logic into
-each product. The packaged development/publication contracts define increment,
+each product. At 0.x breaking changes select MINOR; from 1.0.0 they select MAJOR. Explicit
+`--major` requests current major + 1, including first releases, and must be
+repeated for preview/apply/retry. It does not bypass validation. The matching
+development/publication contracts define increment,
 initial-version and repeat behavior. Sign every actual commit with the approved
 OpenPGP key and verify it. Stop on signing/verification failure without bypassing
 signing or continuing tag/push operations. Test histories use isolated test keys.
@@ -172,7 +177,7 @@ version, match its version authority and current full clean Git HEAD, and pass
 complete receipt/seal/inventory/SBOM/output verification. Fresh staged output
 contains versioned binaries, consumer SBOMs and target checksums. Neither package
 nor launcher package dispatch may acquire an engine or start a build. Consumer
-SBOMs and bundles exclude local source ledgers. Keep checksum files out of asset
+SBOMs and release assets exclude local source ledgers. Keep checksum files out of asset
 maps and checksum inputs.
 
 Download installers accept stable unprefixed `--version`, absolute `--bindir`,

@@ -1,4 +1,48 @@
-use craftguild_standards::release::{conventional, versions};
+use craftguild_standards::release::{conventional, versions, Mode};
+
+#[test]
+fn version_policy_uses_each_groups_major_and_checks_overflow() {
+    use conventional::Bump::*;
+    for current in ["0.0.9", "0.99.42", "1.2.3", "2.5.1"] {
+        let v = versions::stable(current).unwrap();
+        for inferred in [None, Patch, Minor, Major] {
+            let (effective, next) =
+                versions::select(current, inferred, false, Mode::Normal).unwrap();
+            assert_eq!(
+                effective,
+                if v.major == 0 && inferred == Major {
+                    Minor
+                } else {
+                    inferred
+                }
+            );
+            if v.major == 0 {
+                assert_eq!(versions::stable(&next).unwrap().major, 0);
+            }
+            let (bump, explicit) =
+                versions::select(current, inferred, false, Mode::ExplicitMajor).unwrap();
+            assert_eq!(bump, Major);
+            assert_eq!(explicit, format!("{}.0.0", v.major + 1));
+            assert_eq!(
+                versions::select(current, inferred, true, Mode::Normal).unwrap(),
+                (None, current.into())
+            );
+            assert_eq!(
+                versions::select(current, inferred, true, Mode::ExplicitMajor)
+                    .unwrap()
+                    .1,
+                explicit
+            );
+        }
+    }
+    for (version, bump, mode) in [
+        ("0.18446744073709551615.0", Major, Mode::Normal),
+        ("0.0.18446744073709551615", Patch, Mode::Normal),
+        ("18446744073709551615.0.0", Patch, Mode::ExplicitMajor),
+    ] {
+        assert!(versions::select(version, bump, false, mode).is_err());
+    }
+}
 
 #[test]
 fn breaking_description_ends_at_the_next_footer_and_preserves_its_own_continuation() {

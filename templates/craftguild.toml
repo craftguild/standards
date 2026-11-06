@@ -1,0 +1,33 @@
+schema_version = 2
+standards_version = "0.1.0"
+rust_output_layout = "standard"
+artifacts = []
+
+# Unfinished: init does not infer product packages, source roles or gates.
+# Read make prime and make prime PRIME_ARGS="--topic configuration".
+# Normal build/check rejects this starter until configured for the product.
+
+# [[artifacts]]
+# id = "product"
+# command = "product"
+# project = "product"
+# kind = "rust"
+# manifest = "Cargo.toml"
+# lockfile = "Cargo.lock"
+# package = "actual-package-name"
+
+# [[sources]]
+# pattern = "src/**"
+# role = "implementation"
+# reason = "Describe the actual responsibility"
+
+# [[adapters]]
+# language = "rust"
+# test = ["cargo", "test", "--locked"]
+# format = ["cargo", "fmt", "--check"]
+# lint = ["cargo", "clippy", "--locked", "--", "-D", "warnings"]
+
+# [[policies]]
+# kind = "publication"
+# repository = "owner/product"
+# manifest = "Cargo.toml"
