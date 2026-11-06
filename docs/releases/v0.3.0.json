@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "group": "standards",
+  "config_hash": "00586ffb3089fd6b6010f2c96173cd3d1205b509980612024ecb83f39eb3d7c8",
+  "head": "6b329a5cb126ceed59c2fd94e5aa90ee28188d00",
+  "base": "v0.2.0",
+  "current": "0.2.0",
+  "next": "0.3.0",
+  "tag": "v0.3.0",
+  "bump": "minor",
+  "prepared": false,
+  "receipt_path": "docs/releases/v0.3.0.json",
+  "notes": "# v0.3.0\n\nGroup: `standards`\n\nCompare: `v0.2.0` → `6b329a5cb126ceed59c2fd94e5aa90ee28188d00`\n\n## Changes\n\n- feat: standardize Rust outputs and verified release installation (6b329a5cb126ceed59c2fd94e5aa90ee28188d00)\n",
+  "changes": [
+    {
+      "path": "Cargo.toml",
+      "before": "18f61290ce9b13a0c6eb367e33e39842dded7afda2d7d904ab1e86fbb55f2d55",
+      "after": "203c2c45d9e2b1b71d19b06c100b246b59dbd40ac93480dc939eb0a628e06000"
+    },
+    {
+      "path": "Cargo.lock",
+      "before": "346a51a34c9261a1c225824c3b06546b76d1b1b539c8380c6240d36beb5d7e4b",
+      "after": "62bb34439f01402ed6405d171f7edc8a2cb9f38907098d46f331323b1046007c"
+    },
+    {
+      "path": "package.json",
+      "before": "fd1aca069603aaf50dd577df4211022b181e2397e0edf0421114249714329639",
+      "after": "c4d7e73a8122870932cc7a2c14816327c405e50379eb3c6ffc793784bd6a0d64"
+    },
+    {
+      "path": "package-lock.json",
+      "before": "d5d0f647f7ad29d853ffd75aa1e2fa967dae6d96179d104f83dd7324e53d1124",
+      "after": "639a1bbb841c40ec16d8832edd509205f312bd4a6dea30eb2188b5944d5b5cc2"
+    },
+    {
+      "path": "docs/releases/v0.3.0.md",
+      "before": null,
+      "after": "1194e06586b384409be15490562390f7422255872d82074801389d8e58678d33"
+    }
+  ]
+}
