@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "group": "standards",
+  "config_hash": "00586ffb3089fd6b6010f2c96173cd3d1205b509980612024ecb83f39eb3d7c8",
+  "head": "6fc9affb386651013e7f96d5ab4fb8a2b22f21d4",
+  "base": "v0.3.0",
+  "current": "0.3.0",
+  "next": "0.4.0",
+  "tag": "v0.4.0",
+  "bump": "minor",
+  "mode": "normal",
+  "prepared": false,
+  "receipt_path": "docs/releases/v0.4.0.json",
+  "notes": "# v0.4.0\n\nGroup: `standards`\n\nCompare: `v0.3.0` → `6fc9affb386651013e7f96d5ab4fb8a2b22f21d4`\n\n## Changes\n\n- feat!: replace bundles with pinned repository initialization (6fc9affb386651013e7f96d5ab4fb8a2b22f21d4)\n\n## Breaking changes\n\n- Execution and skill bundles are retired. Existing consumers must explicitly migrate to the fixed engine reference and generated entry. (6fc9affb386651013e7f96d5ab4fb8a2b22f21d4)\n",
+  "changes": [
+    {
+      "path": "Cargo.toml",
+      "before": "203c2c45d9e2b1b71d19b06c100b246b59dbd40ac93480dc939eb0a628e06000",
+      "after": "10da0dc485a9efc73f6490a581fe45e6af155f23cab2533fdafd09c96653e942"
+    },
+    {
+      "path": "Cargo.lock",
+      "before": "62bb34439f01402ed6405d171f7edc8a2cb9f38907098d46f331323b1046007c",
+      "after": "ec4693c290e5c4423f51edca98ecb2ac70c182efb3550a8fb0145831adee34fe"
+    },
+    {
+      "path": "package.json",
+      "before": "c4d7e73a8122870932cc7a2c14816327c405e50379eb3c6ffc793784bd6a0d64",
+      "after": "45142f7151d85c2b70d8bbb5e584d5245bc8a6a2b1a0f17204fb31c1e573a72f"
+    },
+    {
+      "path": "package-lock.json",
+      "before": "639a1bbb841c40ec16d8832edd509205f312bd4a6dea30eb2188b5944d5b5cc2",
+      "after": "7d3cd2ca6f5c8d834dc90405ea3abbc456acc0c84724dfc35c8c302fe41f4f1d"
+    },
+    {
+      "path": "docs/releases/v0.4.0.md",
+      "before": null,
+      "after": "dfa3f8321c23e53e9738e356dbfc790887075809b89ee3799906508cdba5c1c4"
+    }
+  ]
+}
