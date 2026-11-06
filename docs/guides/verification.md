@@ -317,3 +317,124 @@ with no unmeasured files or size exceptions. Offline Rust 1.85 consumer checks,
 rustfmt/Clippy, document/provenance and whitespace checks passed. Full-gate evidence
 is .craftguild/ofl-check.log. Executed host: macOS arm64; other hosts and remote CI
 remain unexecuted for this correction.
+
+
+## ADR 0006 source qualification (2026-11-07)
+
+This qualifies the source initializer/engine split and controlled updates for
+`standards-2bi`. Published v0.4.0, its tags, release notes, receipts and assets
+remain unchanged. Isolated version 0.4.0/9.9.9 builds and full revisions below
+are test fixtures, not new public releases or real consumer pins.
+
+| Requirement | Executed evidence |
+| --- | --- |
+| Command roles and artifact identity | `make build` builds the init-only `craftguild-standards` from `craftguild-initializer` and the full `craftguild-standards-engine` from `craftguild-standards`. Both belong to the same release group/version. `make acceptance` checks each binary alone with empty PATH and malformed config: identical offline help/version aliases, command-specific build/SBOM identity, exact SBOM bytes, no source ledger and no file writes. Initializer global engine operations are refused; temporary source install copies only the initializer. |
+| Same clean release and host delivery | `verify_initialization.py` exports a fresh source tree, signs its fixture commit with a disposable key and builds both clean artifacts at full revision `1e90c3898d08a8a91dcab14abd77a134a4c2b2ce`. Packaging verifies both receipts and separate binary/SBOM/checksum assets. Schema 3 metadata labels initializer and engine independently; aggregation checks matching identity, unique hosts, exact role URLs and asset hashes. Added/unsealed/changed/missing inputs and altered SBOM/binary assets are refused before delivery publication. |
+| Numeric update policy | The 15-test Rust initialization suite covers all transitions in both force modes, including 0.9.0 versus 0.10.0. Real clean initializer and engine calls cover fresh init with and without force, upgrade, downgrade, same-version revision replacement, and exact retries. Refused transitions preserve the tree and make no transport calls; errors identify both identities and the force option. Successful changes report their classification and identities. Local ownership conflicts are checked before suggesting a version-only force override. No Git ancestry is used. |
+| Exact retries and cache restoration | Both real binaries restore a missing cache in normal and force modes using only recorded binary/SBOM URLs, without release-index lookup. Subsequent retries preserve file mtimes and perform no acquisition. Source implementation rejects inconsistent exact-identity ownership/role data instead of guessing a repair. |
+| Force boundaries | Real forced calls reject transport failure, hash/revision/SBOM/role/protocol mismatch, missing host assets, unsupported existing reference/protocol, symlink paths and edited managed content. Common entry tests also reject initializer identity and historical identity without an engine command, foreign/unclean identities, tampered cache metadata/SBOMs, entry hashes and unsupported hosts. |
+| Managed update and prior flat pin | The planner records entry, Skill and AGENTS common-block hashes in reference schema 3. The frozen schema 2 baseline matches published v0.4.0 (`893a6d4b8a9d67fb57ec9cd0027ddf0cd5f1fdbc`). Rust tests exercise known-flat migration, edited-content refusal and rollback before pin publication. `verify_legacy_update.py` separately uses the same clean real initializer to upgrade a schema 2 consumer, replacing launcher/Make/Skill/AGENTS while retaining its product contract and old valid cache. The final integrated host acceptance also executes this scenario. No historical full CLI is treated as the new engine. |
+| Ownership, concurrency and rollback | Tests preserve product config, Make recipes, AGENTS contracts and Cargo/npm inputs; refuse edited managed files and legacy bundle authorities; cover exclusive locking, lock replacement, acquisition-time edits, interrupted publication, acquisition/output failures, and concurrent files that rollback must preserve. The pin is published last after staged acquisition/verification, and previous pin/cache bytes survive failed updates. Version refusal occurs before lock/staging/transport. |
+| Clone and pinned operations | A clone-equivalent tree without cache first refuses prime, then runs explicit `make setup` and offline prime using only committed entry files. Real standalone Rust, embedded npm/esbuild and independent frontend consumers execute through the pinned engine. Ordinary operations refuse absent cache without acquiring, and setup never selects another version. Prime runs with denied network/compiler/product tools, reports incomplete config and matching embedded topics, and leaves files unchanged. No global full engine, old archive, copied rules tree, sibling checkout or product font-renderer dependency is required. |
+| Canonical guidance and compatibility | Specs, architecture/configuration/initialization design, source/local Skill, README, guides, Make and CI distinguish the initializer from the pinned engine, force policy and manual common-crate Git revision follow-up. Initialization does not certify product conformance. ADR 0005's 0.x/explicit-major behavior is unchanged and its existing release tests pass. Standard Rust outputs and source-ledger-free consumer SBOMs remain verified. |
+
+Passed commands: focused Rust initialization tests (15), `make check` (all eight
+gates, including 38 Python tests), `make build`, `make acceptance`, release-profile Clippy for both distribution binaries,
+`cargo +1.85.0 check --offline --locked -p craftguild-cli -p craftguild-core -p craftguild-cli-build`,
+`python3 scripts/tests/verify_initialization.py`, the additional real flat-pin
+upgrade scenario, document/provenance checks and `git diff --check`.
+The integrated host suite includes real Rust/npm consumers and temporary
+installer/package/install/uninstall acceptance using transport stubs.
+
+Code-size assessment used tokei 15.0.0 with explicit changed implementation paths:
+31/31 files measured, maximum **216 Code** in `init_transaction.rs`, no oversized
+or unmeasured files. The full source gate measured 97 implementation files,
+maximum **362 Code**, no verified size exceptions. Rust, Python, shell, Make and
+CI wiring are included; tests/helpers/fixtures, manifests, ADRs and design prose
+are excluded according to the repository's executable-source inventory. Policy,
+managed-baseline planning, transaction publication, provenance and command roles
+have separate cohesive responsibilities; no numerical-only split was needed.
+The design-baselines decision remains a transient technical provenance and
+consistency boundary, with no business history table or Header-Detail aggregate.
+
+Local evidence: `.craftguild/2bi-check.log`, `2bi-build.log`, `2bi-acceptance.log`,
+`2bi-focused.log`, `2bi-msrv.log`, `2bi-initialization.log`,
+`2bi-legacy-update.log`, `2bi-binary-clippy.log` and `2bi-size.json` under the same control directory.
+Executed runtime host: **aarch64-apple-darwin (macOS arm64)**. Linux arm64/x86_64
+and macOS x86_64 runtime acceptance, remote CI and paid runners were not executed;
+four-host transport/selection fixtures do not claim runtime qualification.
+
+All acquisitions and installs used isolated roots, temporary destinations and
+transport stubs. No real HOME/system installation, product repository, global
+Skill, user key, live service, dependency upgrade, real version bump, release
+preview/apply, stage/commit/tag/push or registry/publication operation was performed.
+The only Cargo.lock addition is the internal initializer workspace package.
+
+
+## ADR 0006 read-only rollback correction (2026-11-07)
+
+Independent review found a P2 permission failure after the initial qualification:
+a managed launcher at mode 0444 was replaced successfully, then a mode 0555
+`standards/make` directory refused publication of `common.mk`. Restoring the
+launcher with `fs::write` failed too, leaving the new launcher behind the old pin.
+The original report and fixtures remain unchanged in
+`.craftguild/adr6-independent-review-m2gylfzp/`.
+
+Before publishing, initialization now stages each existing file's previous bytes
+and permission mode. Rollback verifies ownership of the current bytes and of the
+backup, then renames the backup over the replacement. It does not need write
+permission on a read-only destination file. Concurrent replacements remain
+untouched. A failed restore no longer stops other owned restores; the error lists
+failures and retains the remaining prior files in an owned `init-recovery-*`
+directory, reporting its path. Normal rollback removes owned staging. The pin-last
+publication rule, exclusive lock and distinct valid engine caches remain intact.
+The [initialization design](../design/initialization.md) records this boundary.
+
+Regression coverage in `tests/init_rollback.rs` verifies:
+
+- The natural 0444-launcher/0555-Make-directory failure restores all prior bytes,
+  file modes, pin and cache without an injected failure.
+- A failure after publishing the read-only pin restores every read-only file
+  with its original mode.
+- A concurrent read-only replacement is preserved.
+- A directory that blocks one rollback does not stop other restores, and the
+  blocked file's old bytes/mode remain available at the reported recovery path.
+
+Before the fix, two of the first three regression tests failed with permission
+denied. After the fix, all four regressions and the existing 15 initialization
+tests pass. The independent review's unchanged `rollback_probe.rs` was also
+linked against the corrected library and run on fresh fixture copies. Both its
+interruption and natural permission-failure cases restore all files and the old
+pin, preserve mode 0444, and leave the entry matching the active pin. Evidence is
+`.craftguild/adr6-rollback-recheck-h6b2ezkt/result.json`.
+
+Passed after the correction: `make check` (all eight gates, including 38 Python
+tests), `make build`, both-artifact `make acceptance`, the offline Rust 1.85
+public-consumer check, and the full signed-source
+`python3 scripts/tests/verify_initialization.py` qualification. The latter reruns
+real isolated Rust/npm consumers, normal/force updates, failed-update cache
+preservation, known flat-pin migration, clone/setup, offline prime and temporary
+package/install/uninstall. Its clean revision
+`33328d741db02e195154e1a1dd4921e2199fa0df` is a test fixture, not a published pin.
+Document/provenance and whitespace checks also pass.
+
+Code-size uses pinned tokei 15.0.0. The correction changes one implementation
+file, `init_transaction.rs`: **241 Code**, fully measured and within 400. Backup,
+publication and restore remain one cohesive initialization transaction; no split
+is needed. Recounting the complete ADR 0006 changed implementation scope measures
+31/31 files, maximum 241 Code, no oversized or unmeasured files. Tests/helpers and
+design prose are excluded by responsibility. The full source gate measures 97
+implementation files, maximum 362 Code, with no verified size exceptions.
+
+Logs are under `.craftguild/adr6-rollback-`: `before.log`, `focused.log`,
+`check.log`, `build.log`, `acceptance.log`, `msrv.log`, `consumer.log`, `size.json`
+and `adr-scope-size.json`. Executed runtime host: macOS arm64. Linux, macOS x86_64
+and remote CI were not executed. No real consumer/product repository, user HOME,
+global Skill, user key, live service or system installation was changed. The Git
+index remains unchanged; no real commit/tag/push, release preparation or
+publication was performed.
+
+The implementation and ownership/error paths received a read-only self-review.
+A new independent review has **not** been performed. `standards-2bi` is reopened
+and remains in progress pending that review; the previous closure is not treated
+as approval of this correction.

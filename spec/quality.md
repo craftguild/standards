@@ -1,6 +1,6 @@
 # Quality contract
 
-`craftguild-standards check` owns whole-repository and changed-scope checks,
+`craftguild-standards-engine check` owns whole-repository and changed-scope checks,
 including relevant untracked files. Results have stable IDs and text/JSON forms.
 Inventory all implementation languages and fail for unsupported configuration,
 missing tools, missing measurements, empty required checks or unexecuted gates.

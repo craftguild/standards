@@ -6,8 +6,9 @@ npm adapters and the `craftguild-standardize` agent skill.
 
 The source engine supports fixed-reference repository initialization, offline
 `prime` topics, shared builds, standard Rust outputs, verified packaging and
-download installers. Published v0.3.0 and earlier do not implement init/prime or
-this flat delivery model. Engine versions and the normative 0.1.0 baseline have
+download installers. Source separates the init-only `craftguild-standards` from
+`craftguild-standards-engine`; published v0.4.0 still has one full CLI and retains
+existing pins. Engine versions and the normative 0.1.0 baseline have
 separate compatibility identifiers; unpublished source is not a public pin.
 
 ## Quick start
@@ -17,18 +18,20 @@ With the [build tools](#build-requirements) available, build from source:
 ```sh
 git clone https://github.com/craftguild/standards.git
 cd standards
+cargo fetch --locked
 make
 ```
 
-The build prints the target triple and prepares a release executable under
-`target/<target>/release/craftguild-standards`. Run that executable with `--help`,
-`--version`, `banner product`, or `sbom`. The SBOM is embedded and prints as
+The build prints the target triple and prepares both executables under
+`target/<target>/release/`. Run `craftguild-standards --help` to see the initializer
+interface, or `craftguild-standards-engine banner product` to generate artwork.
+Both support offline `--version` and `sbom`. The SBOM is embedded and prints as
 CycloneDX 1.5 JSON without a banner.
 
 ## System requirements
 
-The built CLI's help, version, banner and SBOM operations require no language
-runtime, Git, network, configuration or daemon. Build and quality operations need
+Both binaries' help, version and SBOM operations, plus the engine's banner,
+require no language runtime, Git, network, configuration or daemon. Build and quality operations need
 the appropriate build tools and a repository checkout.
 
 Init and explicit setup need Python 3, curl and HTTPS access to the fixed release
@@ -64,19 +67,23 @@ in Cargo.lock. `make install` only copies a built binary and supports `PREFIX`,
 
 ```sh
 craftguild-standards init
-craftguild-standards prime --topic configuration
-craftguild-standards banner standards --output assets/banner.txt
-craftguild-standards banner standards --check assets/banner.txt
-craftguild-standards build --artifact standards
-craftguild-standards build --artifact standards --profile debug
-craftguild-standards installer --check
-craftguild-standards package --group standards --output target/release-assets
-craftguild-standards check --json
-craftguild-standards release --json
+make prime PRIME_ARGS="--topic configuration"
+craftguild-standards-engine banner standards --output assets/banner.txt
+craftguild-standards-engine banner standards --check assets/banner.txt
+craftguild-standards-engine build --artifact standards
+craftguild-standards-engine build --artifact standards --profile debug
+craftguild-standards-engine installer --check
+craftguild-standards-engine package --group standards --output target/release-assets
+craftguild-standards-engine check --json
+craftguild-standards-engine release --json
 ```
 
-Init requires a clean published implementing engine and preserves existing config
-and recipes. Its starter is unfinished; use prime, then configure actual artifacts,
+Init requires a clean published implementing initializer or engine and preserves existing config
+and recipes. It updates to the invoking tool's exact version/revision, allowing
+upgrades. `init --force` permits downgrades and same-version revision replacement
+while retaining all integrity and ownership checks. Exact retries reuse recorded
+metadata; `make setup` acquires the current pin only. Manually align common-crate
+Git revisions after updates. Its starter is unfinished; use prime, then configure actual artifacts,
 source roles, language adapters and repository checks in
 [`craftguild.toml`](craftguild.toml). Read the [contracts](spec/README.md),
 [architecture](docs/design/architecture.md), [configuration](docs/design/configuration.md)

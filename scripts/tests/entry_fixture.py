@@ -28,14 +28,14 @@ class EntryFixture:
         (self.entry / 'make').mkdir(parents=True)
         shutil.copy2(ROOT / 'templates/launcher.py', self.entry / 'launcher.py')
         shutil.copy2(ROOT / 'templates/make/common.mk', self.entry / 'make/common.mk')
-        self.machine = machine or {'engine': {'version': '7.8.9', 'revision': 'a' * 40,
+        self.machine = machine or {'command': 'craftguild-standards-engine', 'engine': {'version': '7.8.9', 'revision': 'a' * 40,
                                              'baseline': '0.1.0', 'protocol': 'craftguild-execution-1',
                                              'entry_protocol': 'craftguild-entry-1'},
                                    'target': target(), 'clean': True}
         self.assets = base / 'assets'
         self.assets.mkdir()
         version = self.machine['engine']['version']
-        name = f'craftguild-standards-v{version}-{self.machine["target"]}'
+        name = f'craftguild-standards-engine-v{version}-{self.machine["target"]}'
         self.binary = self.assets / name
         self.sbom = self.assets / (name + '.bom.json')
         self.sbom.write_bytes(sbom or b'{"fixture": "sbom"}\n')
@@ -44,11 +44,19 @@ class EntryFixture:
         else:
             self.fake_binary(self.machine)
         prefix = f'https://github.com/craftguild/standards/releases/download/v{version}/'
-        self.release = {'schema_version': 2, 'identity': self.machine['engine'],
-                        'hosts': {self.machine['target']: {
-                            'binary': {'url': prefix + name, 'sha256': digest(self.binary)},
-                            'sbom': {'url': prefix + name + '.bom.json', 'sha256': digest(self.sbom)}}}}
-        self.pin = {'schema_version': 2, 'release': self.release,
+        engine = {'binary': {'url': prefix + name, 'sha256': digest(self.binary)},
+                  'sbom': {'url': prefix + name + '.bom.json', 'sha256': digest(self.sbom)}}
+        init_name = f'craftguild-standards-v{version}-{self.machine["target"]}'
+        # A distinct artifact with its own bytes; never executable as an engine.
+        initializer = {}
+        for kind, suffix, data in [('binary', '', b'initializer fixture'), ('sbom', '.bom.json', b'initializer sbom')]:
+            path = self.assets / (init_name + suffix)
+            path.write_bytes(data)
+            initializer[kind] = {'url': prefix + path.name, 'sha256': digest(path)}
+        self.release = {'schema_version': 3, 'identity': self.machine['engine'],
+                        'hosts': {self.machine['target']: {'initializer': initializer, 'engine': engine}}}
+        self.pin = {'schema_version': 3, 'release': self.release,
+                    'managed': {name: 'b' * 64 for name in ['.agents/skills/craftguild-standardize/SKILL.md', 'AGENTS.md']},
                     'entries': {name: digest(self.entry / name) for name in ['launcher.py', 'make/common.mk']}}
         self.save()
         (self.root / 'Makefile').write_text('include standards/make/common.mk\n')

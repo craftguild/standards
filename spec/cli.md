@@ -26,3 +26,11 @@ spaces, leading/trailing empty rows, and retain exactly one final newline; prese
 leading spaces within nonempty rows. Generation supports stdout, `--output` and
 nonmutating `--check`. Products commit and embed the generated text, requiring
 neither Node.js, fonts nor generation tools at build/run time.
+
+
+ADR 0006 source separates standards' two command roles. The installed
+`craftguild-standards` accepts only `init [--force]` as an operation;
+`craftguild-standards-engine` provides all engine operations, including init and
+prime. Both retain this offline presentation contract and identify their own
+command and artifact-specific SBOM. Ordinary consumers use Make/the pinned entry.
+Published v0.4.0 keeps its historical full-CLI grammar.

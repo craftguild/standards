@@ -22,7 +22,7 @@ def verify(root, tool, env):
         git(source, 'init', '-b', 'main')
         git(source, 'add', '.')
         git(source, 'commit', '-S', '-m', 'test: initialize identity fixture')
-        target = json.loads((root / '.craftguild/craftguild-standards/prepared.json').read_text())['build']['target']
+        target = json.loads((root / '.craftguild/craftguild-standards-engine/prepared.json').read_text())['build']['target']
         missing = subprocess.run(['cargo', 'build', '--locked', '--release', '--target', target],
                                  cwd=source, env=env, capture_output=True)
         assert missing.returncode and b'Run `make build`' in missing.stderr

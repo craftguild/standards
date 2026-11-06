@@ -33,7 +33,7 @@ class MetadataTests(unittest.TestCase):
             shutil.rmtree(assets)
             shutil.copytree(fixture.assets, assets)
             # Restore asset authority for the next independent identity check.
-            fixture.release['hosts'][fixture.machine['target']]['binary']['sha256'] = hashlib.sha256(fixture.binary.read_bytes()).hexdigest()
+            fixture.release['hosts'][fixture.machine['target']]['engine']['binary']['sha256'] = hashlib.sha256(fixture.binary.read_bytes()).hexdigest()
             metadata = assets / ('craftguild-release-v7.8.9-' + fixture.machine['target'] + '.json')
             metadata.write_text(json.dumps(fixture.release))
             second = base / 'hosts/second'

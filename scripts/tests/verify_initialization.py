@@ -13,6 +13,8 @@ from signing import signed_git
 from verify_execution import run, verify as execution
 from verify_installers import verify as installers
 from verify_packaging import verify as packaging
+from verify_updates import verify as updates
+from verify_legacy_update import verify as legacy_update
 sys.path.insert(0, str(ROOT / 'scripts'))
 from public_files import inventory, export
 
@@ -57,7 +59,7 @@ def change_fixture_version(root, before, after):
     manifest.write_text(manifest.read_text().replace('version = "' + before + '"', 'version = "' + after + '"', 1))
     lockfile = root / 'Cargo.lock'
     blocks = lockfile.read_text().split('[[package]]')
-    owned = ['craftguild-cli', 'craftguild-cli-build', 'craftguild-core', 'craftguild-standards']
+    owned = ['craftguild-cli', 'craftguild-cli-build', 'craftguild-core', 'craftguild-standards', 'craftguild-initializer']
     for index, block in enumerate(blocks):
         if any(block.lstrip().startswith('name = "' + name + '"\n') for name in owned):
             blocks[index] = block.replace('version = "' + before + '"', 'version = "' + after + '"', 1)
@@ -88,10 +90,12 @@ def verify():
                                RUSTUP_HOME=os.environ.get('RUSTUP_HOME', str(Path.home() / '.rustup')),
                                CARGO_HOME=os.environ.get('CARGO_HOME', str(Path.home() / '.cargo')))
             run(source, ['make', 'build'], environment)
-            record = json.loads((source / '.craftguild/craftguild-standards/receipt.json').read_bytes())
+            record = json.loads((source / '.craftguild/craftguild-standards-engine/receipt.json').read_bytes())
             tool = Path(record['context']['output'])
             machine = json.loads(run(source, [tool, 'engine-identity'], environment).stdout)
             assert machine['clean'] is True
+            initializer_record = json.loads((source / '.craftguild/craftguild-standards/receipt.json').read_bytes())
+            initializer = Path(initializer_record['context']['output'])
             distribution = base / 'deliveries'
             distribution.mkdir()
             index = packaging(source, distribution)
@@ -102,7 +106,7 @@ def verify():
             fixture.root.mkdir()
             # A parent checkout is not discovered or initialized as the consumer.
             (fixture.base / '.git').mkdir()
-            result = run(fixture.root, [tool, 'init'], fixture.env)
+            result = run(fixture.root, [initializer, 'init'], fixture.env)
             assert b'Initialized' in result.stdout
             assert not (fixture.root / '.git').exists()
             assert (fixture.root / '.agents/skills/craftguild-standardize/SKILL.md').is_file()
@@ -110,35 +114,44 @@ def verify():
             assert len(fixture.calls()) == 3  # index plus binary/SBOM; no mutable lookup.
             before = snapshot(fixture.root)
             times = {str(p): p.stat().st_mtime_ns for p in fixture.root.rglob('*') if p.is_file()}
-            run(fixture.root, [tool, 'init'], fixture.env)
+            run(fixture.root, [initializer, 'init'], fixture.env)
             assert before == snapshot(fixture.root)
             assert times == {str(p): p.stat().st_mtime_ns for p in fixture.root.rglob('*') if p.is_file()}
             assert len(fixture.calls()) == 3
+            # Clone equivalent: committed entry/config only, no global initializer/cache.
+            clone = base / 'clone'
+            shutil.copytree(fixture.root, clone, ignore=shutil.ignore_patterns('.craftguild'))
+            calls = len(fixture.calls())
+            run(clone, ['make', 'prime'], fixture.env, success=False)
+            assert len(fixture.calls()) == calls
+            run(clone, ['make', 'setup'], fixture.env)
+            run(clone, ['make', 'prime'], fixture.env)
+            assert len(fixture.calls()) == calls + 2
             prime(fixture, tool)
             run(fixture.root, ['make', 'check'], fixture.env, success=False)
-            assert len(fixture.calls()) == 3
+            assert len(fixture.calls()) == 5
             # Standalone consumers commit only a pin and thin entry, with no rules tree.
             assert not (fixture.root / 'spec').exists()
             assert not list(fixture.root.rglob('*.tar.gz'))
             execution(fixture.entry, fixture.env)
             installers(fixture.entry, fixture.env)
             requests = len(fixture.calls())
-            # An actually different installed version still delegates to the pinned A.
+            updates(base, fixture, initializer, tool)
+            legacy_update(base, fixture, initializer)
+            # Dirty unpublished builds may not replace even an existing pin.
             change_fixture_version(source, machine['engine']['version'], '9.9.9')
             run(source, ['make', 'build'], environment)
             other = json.loads(run(source, [tool, 'engine-identity'], environment).stdout)
             assert other['engine']['version'] == '9.9.9' and other['clean'] is False
-            output = run(fixture.root, [tool, 'prime'], fixture.env).stdout
-            assert ('Engine: ' + machine['engine']['version']).encode() in output
-            assert b'Engine: 9.9.9' not in output
             before = snapshot(fixture.root)
-            run(fixture.root, [tool, 'init'], fixture.env)
+            run(fixture.root, [initializer, 'init'], fixture.env, success=False)
             assert before == snapshot(fixture.root)
             uninitialized = base / 'unpublished'
             uninitialized.mkdir()
-            result = run(uninitialized, [tool, 'init'], fixture.env, success=False)
+            result = run(uninitialized, [initializer, 'init'], fixture.env, success=False)
             assert b'clean published engine' in result.stderr and not list(uninitialized.iterdir())
-            cached = fixture.cache / 'craftguild-standards'
+            requests = len(fixture.calls())
+            cached = fixture.cache / 'craftguild-standards-engine'
             before = cached.read_bytes()
             cached.write_bytes(b'tampered')
             run(fixture.root, [tool, 'prime'], fixture.env, success=False)

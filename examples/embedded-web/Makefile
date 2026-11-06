@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-STANDARDS ?= craftguild-standards
+STANDARDS ?= craftguild-standards-engine
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 DESTDIR ?=

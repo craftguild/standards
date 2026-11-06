@@ -3,7 +3,8 @@ use craftguild_standards::{
     init_transaction::{self, Edit},
     initialization, prime,
     repository_pin::{
-        self as pin, Asset, HostAssets, Identity, MachineIdentity, Reference, Release,
+        self as pin, Asset, Delivery, HostAssets, Identity, MachineIdentity, Reference, Release,
+        RoleAssets,
     },
 };
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
@@ -18,27 +19,34 @@ fn fixture() -> (tempfile::TempDir, Reference, MachineIdentity) {
         entry_protocol: pin::ENTRY_PROTOCOL.into(),
     };
     let host = "aarch64-apple-darwin";
-    let base = format!("https://github.com/craftguild/standards/releases/download/v7.8.9/craftguild-standards-v7.8.9-{host}");
+    let assets = |command: &str| {
+        let base = format!("https://github.com/craftguild/standards/releases/download/v7.8.9/{command}-v7.8.9-{host}");
+        HostAssets {
+            binary: Asset {
+                url: base.clone(),
+                sha256: "b".repeat(64),
+            },
+            sbom: Asset {
+                url: format!("{base}.bom.json"),
+                sha256: "c".repeat(64),
+            },
+        }
+    };
     let release = Release {
-        schema_version: 2,
+        schema_version: 3,
         identity: identity.clone(),
         hosts: BTreeMap::from([(
             host.into(),
-            HostAssets {
-                binary: Asset {
-                    url: base.clone(),
-                    sha256: "b".repeat(64),
-                },
-                sbom: Asset {
-                    url: format!("{base}.bom.json"),
-                    sha256: "c".repeat(64),
-                },
-            },
+            Delivery::Split(RoleAssets {
+                initializer: assets("craftguild-standards"),
+                engine: assets("craftguild-standards-engine"),
+            }),
         )]),
     };
     let reference = Reference::new(release);
     reference.validate().unwrap();
     let machine = MachineIdentity {
+        command: "craftguild-standards-engine".into(),
         engine: identity,
         target: host.into(),
         clean: true,
@@ -121,7 +129,7 @@ fn existing_product_contracts_configuration_recipes_and_ignore_are_preserved() {
         "build:\n\tmy-product-builder\n",
     )
     .unwrap();
-    fs::write(root.path().join("AGENTS.md"), "Before\n<!-- craftguild:common:start -->\nOld pointer\n<!-- craftguild:common:end -->\nProduct contracts\n").unwrap();
+    fs::write(root.path().join("AGENTS.md"), "Before\nProduct contracts\n").unwrap();
     fs::write(
         root.path().join(".gitignore"),
         "# Product rules\nother/\n/.craftguild/\n",
@@ -138,7 +146,7 @@ fn existing_product_contracts_configuration_recipes_and_ignore_are_preserved() {
         "product config preserved even if malformed ["
     );
     let agents = fs::read_to_string(root.path().join("AGENTS.md")).unwrap();
-    assert!(agents.starts_with("Before\n"));
+    assert!(agents.contains("Before\n"));
     assert!(agents.ends_with("Product contracts\n"));
     assert_eq!(agents.matches("craftguild:common:start").count(), 1);
     initialize(root.path(), &reference);
@@ -571,4 +579,237 @@ fn manifest_based_adoption_is_rejected_before_acquisition_or_publication() {
             assert!(!root.path().join(".craftguild").exists());
         }
     }
+}
+
+#[test]
+fn numeric_policy_covers_all_transitions_in_both_force_modes() {
+    use craftguild_standards::init_policy::{select, Change};
+    let (_, _, mut tool) = fixture();
+    tool.engine.version = "0.10.0".into();
+    for force in [false, true] {
+        assert_eq!(select(&tool, None, force).unwrap(), Change::Initialize);
+        assert_eq!(
+            select(&tool, Some(&tool.engine), force).unwrap(),
+            Change::Revalidate
+        );
+        let mut old = tool.engine.clone();
+        old.version = "0.9.0".into();
+        assert_eq!(select(&tool, Some(&old), force).unwrap(), Change::Upgrade);
+        old.version = "0.11.0".into();
+        let result = select(&tool, Some(&old), force);
+        if force {
+            assert_eq!(result.unwrap(), Change::Downgrade);
+        } else {
+            assert!(result.unwrap_err().to_string().contains("init --force"));
+        }
+        old.version = tool.engine.version.clone();
+        old.revision = "d".repeat(40);
+        let result = select(&tool, Some(&old), force);
+        if force {
+            assert_eq!(result.unwrap(), Change::Replace);
+        } else {
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("same-version replacement"));
+        }
+    }
+    tool.clean = false;
+    assert!(select(&tool, None, true).is_err());
+    tool.clean = true;
+    for version in ["0.01.0", "0.10.0-rc.1", "0.10.0+local", "Latest"] {
+        tool.engine.version = version.into();
+        assert!(select(&tool, None, true).is_err());
+    }
+}
+
+#[test]
+fn update_preserves_old_pin_cache_and_consumer_edits_on_every_failed_publication() {
+    let (root, old, _) = fixture();
+    initialize(root.path(), &old);
+    let old_cache = root.path().join(".craftguild/engine/old-valid");
+    fs::create_dir_all(&old_cache).unwrap();
+    fs::write(old_cache.join("engine"), "valid old binary").unwrap();
+    for name in [
+        "Cargo.toml",
+        "Cargo.lock",
+        "package.json",
+        "package-lock.json",
+    ] {
+        fs::write(root.path().join(name), "product owned").unwrap();
+    }
+    let mut next = old.clone();
+    next.release.identity.version = "8.0.0".into();
+    // The plan's transport-independent ownership tests use valid-shaped release URLs.
+    for delivery in next.release.hosts.values_mut() {
+        let Delivery::Split(roles) = delivery else {
+            unreachable!()
+        };
+        for pair in [&mut roles.initializer, &mut roles.engine] {
+            pair.binary.url = pair.binary.url.replace("7.8.9", "8.0.0");
+            pair.sbom.url = pair.sbom.url.replace("7.8.9", "8.0.0");
+        }
+    }
+    let before = files(root.path());
+    let edits =
+        initialization::plan(root.path(), Some(serde_json::to_vec(&next).unwrap())).unwrap();
+    assert_eq!(edits.last().unwrap().name, pin::REFERENCE);
+    for fail_at in 0..edits.len() {
+        assert!(init_transaction::publish(
+            root.path(),
+            &edits,
+            |_| Ok(()),
+            |i| {
+                if i == fail_at {
+                    Err("interrupted update".into())
+                } else {
+                    Ok(())
+                }
+            }
+        )
+        .is_err());
+        assert_eq!(before, files(root.path()));
+        assert_eq!(
+            fs::read(old_cache.join("engine")).unwrap(),
+            b"valid old binary"
+        );
+    }
+    assert!(init_transaction::publish(
+        root.path(),
+        &edits,
+        |_| Err("verification failed".into()),
+        |_| Ok(())
+    )
+    .is_err());
+    assert_eq!(before, files(root.path()));
+    for name in [
+        "standards/launcher.py",
+        "standards/make/common.mk",
+        ".agents/skills/craftguild-standardize/SKILL.md",
+        "AGENTS.md",
+    ] {
+        let path = root.path().join(name);
+        let original = fs::read(&path).unwrap();
+        fs::write(&path, "edited by product").unwrap();
+        assert!(
+            initialization::plan(root.path(), Some(serde_json::to_vec(&next).unwrap())).is_err(),
+            "{name}"
+        );
+        fs::write(path, original).unwrap();
+    }
+    init_transaction::publish(root.path(), &edits, |_| Ok(()), |_| Ok(())).unwrap();
+    let mut expected = before;
+    expected.insert(pin::REFERENCE.into(), serde_json::to_vec(&next).unwrap());
+    assert_eq!(expected, files(root.path()));
+}
+
+#[test]
+fn known_flat_pin_updates_all_managed_baselines_and_protects_product_contracts() {
+    let (root, target, _) = fixture();
+    let launcher = include_bytes!("fixtures/initialization-v0.4.0/launcher.py");
+    let make = include_bytes!("fixtures/initialization-v0.4.0/common.mk");
+    let skill = include_bytes!("fixtures/initialization-v0.4.0/local-skill.md");
+    fs::create_dir_all(root.path().join("standards/make")).unwrap();
+    fs::create_dir_all(root.path().join(".agents/skills/craftguild-standardize")).unwrap();
+    fs::write(root.path().join("standards/launcher.py"), launcher).unwrap();
+    fs::write(root.path().join("standards/make/common.mk"), make).unwrap();
+    fs::write(
+        root.path()
+            .join(".agents/skills/craftguild-standardize/SKILL.md"),
+        skill,
+    )
+    .unwrap();
+    let old_block = "<!-- craftguild:common:start -->\nUse Craftguild standards 0.1.0 with the fixed engine in standards/engine.json.\nRun `make prime` (or `python3 standards/launcher.py prime`) before adoption.\nRead relevant topics with `make prime PRIME_ARGS=\"--topic NAME\"`.\nFollow the repo-local craftguild-standardize Skill. Run `make check`.\n<!-- craftguild:common:end -->";
+    let original_agents = format!("Before\n{old_block}\nProduct contracts\n");
+    fs::write(root.path().join("AGENTS.md"), &original_agents).unwrap();
+    let mut old = target.clone();
+    old.schema_version = 2;
+    old.release.schema_version = 2;
+    old.managed.clear();
+    for delivery in old.release.hosts.values_mut() {
+        let Delivery::Split(roles) = delivery else {
+            unreachable!()
+        };
+        *delivery = Delivery::Legacy(roles.initializer.clone());
+    }
+    old.entries = [
+        (
+            "launcher.py".into(),
+            craftguild_core::paths::digest(launcher),
+        ),
+        (
+            "make/common.mk".into(),
+            craftguild_core::paths::digest(make),
+        ),
+    ]
+    .into();
+    fs::write(
+        root.path().join(pin::REFERENCE),
+        serde_json::to_vec(&old).unwrap(),
+    )
+    .unwrap();
+    let next = serde_json::to_vec(&target).unwrap();
+    let edits = initialization::plan(root.path(), Some(next.clone())).unwrap();
+    assert!(init_transaction::publish(
+        root.path(),
+        &edits,
+        |_| Ok(()),
+        |i| {
+            if i == edits.len() - 1 {
+                Err("before pin publication".into())
+            } else {
+                Ok(())
+            }
+        }
+    )
+    .is_err());
+    assert_eq!(
+        fs::read(root.path().join("standards/launcher.py")).unwrap(),
+        launcher
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("AGENTS.md")).unwrap(),
+        original_agents
+    );
+    fs::write(
+        root.path().join("AGENTS.md"),
+        original_agents.replace("before adoption", "before custom adoption"),
+    )
+    .unwrap();
+    assert!(initialization::plan(root.path(), Some(next)).is_err());
+    fs::write(root.path().join("AGENTS.md"), original_agents).unwrap();
+    init_transaction::publish(root.path(), &edits, |_| Ok(()), |_| Ok(())).unwrap();
+    target.verify_entries(root.path()).unwrap();
+    let agents = fs::read_to_string(root.path().join("AGENTS.md")).unwrap();
+    assert!(agents.starts_with("Before\n") && agents.ends_with("Product contracts\n"));
+    assert!(agents.contains("init [--force]"));
+}
+
+#[test]
+fn concurrent_acquisition_edits_and_lock_replacement_remain_owned_by_their_writer() {
+    let (root, reference, _) = fixture();
+    initialize(root.path(), &reference);
+    let edits = initialization::plan(root.path(), None).unwrap();
+    let agents = root.path().join("AGENTS.md");
+    assert!(init_transaction::publish(
+        root.path(),
+        &edits,
+        |_| {
+            fs::write(&agents, "concurrent product instructions")?;
+            Ok(())
+        },
+        |_| Ok(())
+    )
+    .is_err());
+    assert_eq!(
+        fs::read(&agents).unwrap(),
+        b"concurrent product instructions"
+    );
+    assert!(root.path().join(pin::REFERENCE).is_file());
+    let lock = init_transaction::Lock::acquire(root.path()).unwrap();
+    let path = root.path().join(".craftguild/init.lock");
+    fs::remove_file(&path).unwrap();
+    fs::write(&path, "new lock owner").unwrap();
+    drop(lock);
+    assert_eq!(fs::read(path).unwrap(), b"new lock owner");
 }

@@ -23,6 +23,7 @@ pub struct Identity {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MachineIdentity {
+    pub command: String,
     pub engine: Identity,
     pub target: String,
     pub clean: bool,
@@ -31,6 +32,7 @@ pub struct MachineIdentity {
 impl MachineIdentity {
     pub fn from_build(info: craftguild_cli::BuildInfo<'_>) -> Self {
         Self {
+            command: info.command.into(),
             engine: Identity {
                 version: info.version.into(),
                 revision: info.commit.into(),
@@ -70,10 +72,24 @@ pub struct HostAssets {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct RoleAssets {
+    pub initializer: HostAssets,
+    pub engine: HostAssets,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Delivery {
+    Split(RoleAssets),
+    Legacy(HostAssets),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Release {
     pub schema_version: u32,
     pub identity: Identity,
-    pub hosts: BTreeMap<String, HostAssets>,
+    pub hosts: BTreeMap<String, Delivery>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -82,6 +98,8 @@ pub struct Reference {
     pub schema_version: u32,
     pub release: Release,
     pub entries: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub managed: BTreeMap<String, String>,
 }
 
 fn hexadecimal(text: &str, length: usize) -> bool {
@@ -95,7 +113,7 @@ impl Release {
     pub fn validate(&self) -> Result<()> {
         let identity = &self.identity;
         super::release::versions::stable(&identity.version)?;
-        if self.schema_version != 2
+        if !matches!(self.schema_version, 2 | 3)
             || !hexadecimal(&identity.revision, 40)
             || identity.baseline != BASELINE
             || identity.protocol != crate::execution_context::PROTOCOL
@@ -115,13 +133,25 @@ impl Release {
             {
                 return Err("Unsupported release host".into());
             }
-            let base = format!("https://github.com/craftguild/standards/releases/download/v{}/craftguild-standards-v{}-{host}", identity.version, identity.version);
-            for (asset, url) in [
-                (&assets.binary, base.clone()),
-                (&assets.sbom, format!("{base}.bom.json")),
-            ] {
-                if asset.url != url || !hexadecimal(&asset.sha256, 64) {
-                    return Err("Release asset requires its exact HTTPS URL and SHA-256".into());
+            let roles: Vec<(&str, &HostAssets)> = match (self.schema_version, assets) {
+                (2, Delivery::Legacy(assets)) => vec![("craftguild-standards", assets)],
+                (3, Delivery::Split(roles)) => vec![
+                    ("craftguild-standards", &roles.initializer),
+                    ("craftguild-standards-engine", &roles.engine),
+                ],
+                _ => return Err("Release artifact roles differ from metadata schema".into()),
+            };
+            for (command, assets) in roles {
+                let base = format!("https://github.com/craftguild/standards/releases/download/v{}/{command}-v{}-{host}", identity.version, identity.version);
+                for (asset, url) in [
+                    (&assets.binary, base.clone()),
+                    (&assets.sbom, format!("{base}.bom.json")),
+                ] {
+                    if asset.url != url || !hexadecimal(&asset.sha256, 64) {
+                        return Err(
+                            "Release asset requires its exact role, HTTPS URL and SHA-256".into(),
+                        );
+                    }
                 }
             }
         }
@@ -132,7 +162,8 @@ impl Release {
 impl Reference {
     pub fn new(release: Release) -> Self {
         Self {
-            schema_version: 2,
+            schema_version: 3,
+            managed: crate::init_plan::managed_hashes(),
             release,
             entries: Self::entry_hashes(),
         }
@@ -148,12 +179,24 @@ impl Reference {
 
     pub fn validate(&self) -> Result<()> {
         self.release.validate()?;
-        if self.schema_version != 2
+        if !matches!(self.schema_version, 2 | 3)
+            || self.schema_version != self.release.schema_version
             || self.entries.keys().map(String::as_str).collect::<Vec<_>>()
                 != ["launcher.py", "make/common.mk"]
             || self.entries.values().any(|hash| !hexadecimal(hash, 64))
         {
             return Err("Incompatible fixed entry reference; explicit migration required".into());
+        }
+        let expected = [
+            ".agents/skills/craftguild-standardize/SKILL.md",
+            "AGENTS.md",
+        ];
+        if (self.schema_version == 2 && !self.managed.is_empty())
+            || (self.schema_version == 3
+                && (self.managed.keys().map(String::as_str).collect::<Vec<_>>() != expected
+                    || self.managed.values().any(|h| !hexadecimal(h, 64))))
+        {
+            return Err("Invalid managed baseline ownership".into());
         }
         Ok(())
     }

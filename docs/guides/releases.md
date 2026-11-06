@@ -19,8 +19,8 @@ make release RELEASE_ARGS=--json
 make release
 ```
 
-The tool equivalents are `craftguild-standards release --json` and
-`craftguild-standards release --apply`. Neither creates commits/tags, pushes,
+The tool equivalents are `craftguild-standards-engine release --json` and
+`craftguild-standards-engine release --apply`. Neither creates commits/tags, pushes,
 publishes, or installs anything. Changes come from literal paths configured for
 the group. A nonconventional merge message is an error; squash/prepare a compliant
 signed history before release, within the request's authorization.

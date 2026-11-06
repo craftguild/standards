@@ -31,7 +31,7 @@ def verify_checkout(root, revision):
 
 
 def package(root, destination):
-    receipt = json.loads((root / '.craftguild/craftguild-standards/receipt.json').read_text())
+    receipt = json.loads((root / '.craftguild/craftguild-standards-engine/receipt.json').read_text())
     build = receipt['prepared']['build']
     revision = build['commit']
     if (build['dirty'] != 'clean' or build['profile'] != 'release'
@@ -52,25 +52,28 @@ def package(root, destination):
         (artifacts / f"SHA256SUMS-{target}.txt").unlink()
         binary = verified_engine(root)
         identity = json.loads(subprocess.check_output([str(binary), 'engine-identity'], cwd=root))
-        if (identity['engine'] != {'version': version, 'revision': revision,
+        if (identity['command'] != 'craftguild-standards-engine'
+                or identity['engine'] != {'version': version, 'revision': revision,
                                   'baseline': '0.1.0', 'protocol': receipt['protocol'],
                                   'entry_protocol': 'craftguild-entry-1'}
                 or identity['target'] != target or identity['clean'] is not True):
             raise ValueError('Engine release identity differs from its verified receipt')
-        command = f'craftguild-standards-{suffix}'
         base = f'https://github.com/craftguild/standards/releases/download/v{version}/'
-        record = {
-            'schema_version': 2, 'identity': identity['engine'],
-            'hosts': {target: {
-                'binary': {'url': base + command, 'sha256': digest(artifacts / command)},
-                'sbom': {'url': base + command + '.bom.json',
-                         'sha256': digest(artifacts / (command + '.bom.json'))}}},
-        }
+        roles = {}
+        for role, command in [('initializer', 'craftguild-standards'),
+                              ('engine', 'craftguild-standards-engine')]:
+            stem = f'{command}-{suffix}'
+            roles[role] = {
+                'binary': {'url': base + stem, 'sha256': digest(artifacts / stem)},
+                'sbom': {'url': base + stem + '.bom.json',
+                         'sha256': digest(artifacts / (stem + '.bom.json'))}}
+        record = {'schema_version': 3, 'identity': identity['engine'],
+                  'hosts': {target: roles}}
         (artifacts / f'craftguild-release-{suffix}.json').write_text(json.dumps(record, indent=2) + '\n')
         checksums = ''.join(f'{digest(p)}  {p.name}\n' for p in sorted(artifacts.iterdir()))
         (artifacts / f'SHA256SUMS-{target}.txt').write_text(checksums)
-        subprocess.run([str(binary), 'verify-receipt', '--artifact', receipt['context']['artifact']],
-                       cwd=root, check=True)
+        for artifact in ['standards', 'standards-engine']:
+            subprocess.run([str(binary), 'verify-receipt', '--artifact', artifact], cwd=root, check=True)
         verify_checkout(root, revision)
         artifacts.rename(destination)
     print(destination)

@@ -2,6 +2,11 @@
 
 Status: Accepted; implemented in source
 
+[ADR 0006](0006-initializer-cli-and-controlled-engine-upgrades.md) supersedes the
+single public CLI, existing-pin retention and cross-version init delegation
+decisions below. ADR 0006 is implemented in source; the historical published
+v0.4.0 binary and its behavior described here remain unchanged.
+
 This replaces the execution/skill bundle distribution decision in
 [ADR 0002](0002-standards-owned-build-orchestration.md) and the standards-specific
 bundle additions in [ADR 0003](0003-standard-rust-outputs-and-release-installers.md).

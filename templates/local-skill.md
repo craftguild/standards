@@ -17,6 +17,13 @@ crates or retain figlet-rs/vendor solely to test standards. Add product tests
 only for a concrete uncovered connection risk. Report generic measurement gaps
 upstream. Preserve product behavior, required gates and unrelated work.
 
+Use `craftguild-standards init` to update explicitly to the invoking initializer's
+published version/revision. Downgrades and same-version revision replacement
+require `--force`; edits, integrity and compatibility checks still apply.
+`make setup` restores only the current pin, and ordinary operations never update.
+After updating, manually align common-crate Git revisions with the reported full
+revision and adapt product configuration/APIs before product checks.
+
 Initialization is unfinished adoption. Configure real artifacts, source roles
 and gates, then run `make check` and artifact acceptance. Publication, product
 migrations, installation and service operations require the active request's

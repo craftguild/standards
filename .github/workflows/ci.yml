@@ -45,10 +45,13 @@ jobs:
       - run: npm --prefix examples/embedded-web/web ci
       - run: npm --prefix examples/independent/frontend ci
       - run: make check
-      - run: make build
-      - run: make acceptance
+      - name: Build initializer and engine with independent SBOMs
+        run: make build
+      - name: Check both offline artifacts and isolated initializer install
+        run: make acceptance
       - run: python3 scripts/verify_examples.py
-      - run: python3 scripts/tests/verify_initialization.py
+      - name: Qualify controlled updates and clone setup through the pinned engine
+        run: python3 scripts/tests/verify_initialization.py
       - run: python3 scripts/package_delivery.py --output target/delivery
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:

@@ -57,10 +57,10 @@ def reference(root, entry):
     path = owned(root, str(entry.relative_to(root) / 'engine.json'))
     data = path.read_bytes()
     pin = json.loads(data)
-    if set(pin) != {'schema_version', 'release', 'entries'} or pin['schema_version'] != 2:
+    if set(pin) != {'schema_version', 'release', 'entries', 'managed'} or pin['schema_version'] != 3:
         raise ValueError('Incompatible fixed reference; explicit migration required')
     release = pin['release']
-    if set(release) != {'schema_version', 'identity', 'hosts'} or release['schema_version'] != 2:
+    if set(release) != {'schema_version', 'identity', 'hosts'} or release['schema_version'] != 3:
         raise ValueError('Incompatible release metadata')
     identity = release['identity']
     if (set(identity) != {'version', 'revision', 'baseline', 'protocol', 'entry_protocol'}
@@ -80,13 +80,19 @@ def reference(root, entry):
         path = owned(root, str(entry.relative_to(root) / name))
         if not hexadecimal(expected, 64) or digest(path.read_bytes()) != expected:
             raise ValueError('Managed entry hash differs from fixed reference')
+    if (set(pin['managed']) != {'.agents/skills/craftguild-standardize/SKILL.md', 'AGENTS.md'}
+            or any(not hexadecimal(value, 64) for value in pin['managed'].values())):
+        raise ValueError('Invalid managed baseline ownership')
     selected = host()
     if selected not in release['hosts']:
         raise ValueError('No published engine asset pinned for host ' + selected)
-    assets = release['hosts'][selected]
+    roles = release['hosts'][selected]
+    if set(roles) != {'initializer', 'engine'}:
+        raise ValueError('Invalid release artifact roles')
+    assets = roles['engine']
     if set(assets) != {'binary', 'sbom'}:
         raise ValueError('Invalid engine assets')
-    base = f'https://github.com/craftguild/standards/releases/download/v{version}/craftguild-standards-v{version}-{selected}'
+    base = f'https://github.com/craftguild/standards/releases/download/v{version}/craftguild-standards-engine-v{version}-{selected}'
     for name, suffix in [('binary', ''), ('sbom', '.bom.json')]:
         asset = assets[name]
         if (set(asset) != {'url', 'sha256'} or asset['url'] != base + suffix
@@ -104,13 +110,13 @@ def query(binary, operation, root):
 
 
 def verify(root, directory, pin, reference_hash, selected):
-    binary = owned(root, str(directory.relative_to(root) / 'craftguild-standards'))
+    binary = owned(root, str(directory.relative_to(root) / 'craftguild-standards-engine'))
     sbom = owned(root, str(directory.relative_to(root) / 'engine.bom.json'))
-    assets = pin['release']['hosts'][selected]
+    assets = pin['release']['hosts'][selected]['engine']
     for name, path in [('binary', binary), ('sbom', sbom)]:
         if not path.is_file() or digest(path.read_bytes()) != assets[name]['sha256']:
             raise ValueError('Cached/downloaded engine digest differs; ' + INSTRUCTION)
-    expected = {'engine': pin['release']['identity'], 'target': selected, 'clean': True}
+    expected = {'command': 'craftguild-standards-engine', 'engine': pin['release']['identity'], 'target': selected, 'clean': True}
     # Hash verification always precedes executing downloaded code.
     if json.loads(query(binary, 'engine-identity', root)) != expected:
         raise ValueError('Engine revision/version/compatibility differs from reference')
@@ -130,16 +136,16 @@ def acquire(root, cache, pin, reference_hash, selected):
         cache.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='setup-', dir=cache.parent) as name:
             stage = Path(name)
-            for asset, filename in [('binary', 'craftguild-standards'), ('sbom', 'engine.bom.json')]:
+            for asset, filename in [('binary', 'craftguild-standards-engine'), ('sbom', 'engine.bom.json')]:
                 subprocess.run(['curl', '-fsSL', '--proto', '=https', '--proto-redir', '=https',
                                 '--output', str(stage / filename),
-                                pin['release']['hosts'][selected][asset]['url']], check=True)
-            (stage / 'craftguild-standards').chmod(0o755)
+                                pin['release']['hosts'][selected]['engine'][asset]['url']], check=True)
+            (stage / 'craftguild-standards-engine').chmod(0o755)
             _, record = verify(root, stage, pin, reference_hash, selected)
             (stage / 'verified.json').write_text(json.dumps(record, sort_keys=True) + '\n')
             candidate = stage / 'ready'
             candidate.mkdir()
-            for filename in ['craftguild-standards', 'engine.bom.json', 'verified.json']:
+            for filename in ['craftguild-standards-engine', 'engine.bom.json', 'verified.json']:
                 (stage / filename).rename(candidate / filename)
             # The exclusive setup lock serializes common-entry publication.
             if cache.exists():

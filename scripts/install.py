@@ -11,7 +11,7 @@ import sys
 
 def install(root, bindir, destdir, target_dir, target, profile=None):
     root = root.resolve()
-    record = root / '.craftguild/craftguild-standards/receipt.json'
+    record = root / '.craftguild/craftguild-standards-engine/receipt.json'
     if not record.is_file():
         raise ValueError('No verified engine found. Run make build without privileges first.')
     receipt = json.loads(record.read_text())
@@ -21,7 +21,7 @@ def install(root, bindir, destdir, target_dir, target, profile=None):
     digest = hashlib.sha256(binary.read_bytes()).hexdigest()
     if receipt.get('protocol') != 'craftguild-execution-1' or receipt['outputs'] != {binary.name: digest}:
         raise ValueError('Engine integrity check failed. Run make build without privileges first.')
-    argv = [str(binary), 'install', '--bindir', bindir, '--destdir', destdir]
+    argv = [str(binary), 'install', '--artifact', 'standards', '--bindir', bindir, '--destdir', destdir]
     for flag, value in [('target-dir', target_dir), ('profile', profile), ('target', target)]:
         if value:
             argv += ['--' + flag, value]

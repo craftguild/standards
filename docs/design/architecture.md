@@ -10,7 +10,8 @@ not definitions of a product or distribution.
 | craftguild-cli | Plain offline presentation | Standard library |
 | craftguild-core | Build identity, input seals, CycloneDX validation | Serialization, hashes, schema validator |
 | craftguild-cli-build | Application build observation and prepared input verification | core |
-| craftguild-standards | Configuration, initialization, pinned context, build/distribution, adapters and policies | core, cli, cli-build |
+| craftguild-initializer | Installed init-only interface and own artifact identity | standards, core, cli, cli-build |
+| craftguild-standards (engine) | Configuration, initialization, pinned context, build/distribution, adapters and policies | core, cli, cli-build |
 
 The application supplies its command name, version, repository root and banner.
 Never discover the root by walking into a parent repository. Git observation
@@ -67,4 +68,5 @@ local coordination state and working history are never prerequisites for a build
 ADR 0004 [initialization](initialization.md) replaces engine/skill archive delivery
 with fixed references, a small shared entry and matching embedded context. The
 standards engine owns acquisition, verification and rules; consumers own their
-configuration and product behavior. Only init/explicit setup acquires an engine.
+configuration and product behavior. Only init/explicit setup acquires an engine. ADR 0006 separates the installed
+initializer from the full pinned engine; both share the initialization policy.

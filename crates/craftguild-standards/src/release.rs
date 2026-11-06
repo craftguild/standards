@@ -145,7 +145,7 @@ pub fn preflight(root: &Path, config: &crate::config::Config, args: &[String]) -
 
 pub fn run(args: &[String], output: &mut impl Write) -> Result<()> {
     if args == ["--help"] || args == ["-h"] {
-        writeln!(output,"Usage: craftguild-standards release [--group ID] [--major] [--apply] [--json]\nDefault: preview only. --major requests one explicit MAJOR increment.\nApply prepares local files; commit/tag/push are separate.")?;
+        writeln!(output,"Usage: craftguild-standards-engine release [--group ID] [--major] [--apply] [--json]\nDefault: preview only. --major requests one explicit MAJOR increment.\nApply prepares local files; commit/tag/push are separate.")?;
         return Ok(());
     }
     let (group, apply, json, mode) = options(args)?;

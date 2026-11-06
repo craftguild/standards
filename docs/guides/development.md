@@ -1,7 +1,7 @@
 # Development
 
 `make` uses a non-distributed bootstrap executable to prepare the final tool's
-own real SBOM, then builds the locked release binary. The bootstrap has no final
+own real SBOMs, then builds both locked release binaries. The bootstrap has no final
 version/SBOM presentation path. `make test` runs ordinary Rust, npm and Python tests. `make check`
 uses the common engine, roles, counter and configured adapters. `make acceptance`
 needs an already-built release executable and uses only temporary resources.
@@ -69,7 +69,7 @@ a clean checkout at that same revision:
 python3 scripts/package_delivery.py --output target/delivery
 ```
 
-It creates the flat executable, matching consumer SBOM, schema 2 host release
+It creates both flat executables, their independent consumer SBOMs, schema 3 host release
 metadata and target checksums. Combine independently qualified host deliveries
 with `python3 scripts/release_metadata.py INPUT --output target/release-index`
 to produce the versioned index used by init. Only assets actually present are

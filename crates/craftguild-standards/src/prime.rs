@@ -136,7 +136,7 @@ pub fn render(
         }
     }
     if !args.is_empty() {
-        return Err("Usage: craftguild-standards prime [--topic NAME]".into());
+        return Err("Usage: craftguild-standards-engine prime [--topic NAME]".into());
     }
     let status = match crate::config::load(root) {
         Ok(_) => "Structurally configured; conformance has not been checked.".into(),

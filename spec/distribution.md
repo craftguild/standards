@@ -53,3 +53,12 @@ contracts and adoption/configuration guidance as owned, sealed build inputs.
 Init commits only a fixed reference, common entry, short local skill and product
 configuration. It never relabels old assets as unpublished features. Published
 v0.3.0 and earlier assets/notes/receipts retain their original contracts.
+
+
+ADR 0006 source delivery has two artifact identities in the same release group:
+`craftguild-standards` (initializer) and `craftguild-standards-engine` (full engine),
+with one version and full clean revision. Each has independent embedded/sidecar
+SBOMs and checksums. Release metadata schema 3 explicitly names initializer and
+engine assets for each qualified host. The public installer selects the initializer;
+init verifies and acquires the matching engine. Old full-CLI assets and another
+artifact's SBOM cannot substitute for the engine. Published assets remain unchanged.

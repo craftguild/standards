@@ -95,7 +95,7 @@ def verify(entry, environment=None):
         run(rust, ['make', 'setup'])
         run(rust, ['make', 'build', 'PROFILE=debug', 'FEATURES=optional-part', 'CARGO_TARGET_DIR=products'])
         first = offline(rust, 'sample')
-        engine = next((rust / '.craftguild/engine').glob('*/*/craftguild-standards'))
+        engine = next((rust / '.craftguild/engine').glob('*/*/craftguild-standards-engine'))
         run(rust, [sys.executable, 'standards/launcher.py', 'build', '--profile', 'debug',
                    '--features', 'optional-part', '--target-dir', 'products'])
         direct = receipt(rust, 'sample')

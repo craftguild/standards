@@ -24,6 +24,7 @@ package:
 release:
 	$(BOOTSTRAP) release $(RELEASE_ARGS)
 
+# Build both initializer and full engine; only the initializer is installed.
 build:
 	$(BOOTSTRAP) build $(TARGET_ARG) $(BUILD_ARGS)
 

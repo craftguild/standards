@@ -9,8 +9,8 @@ Declare an executable artifact, its release group and an installer in
 Generate and check the script with the common engine:
 
 ```sh
-craftguild-standards installer
-craftguild-standards installer --artifact standards --check
+craftguild-standards-engine installer
+craftguild-standards-engine installer --artifact standards --check
 make installer INSTALLER_ARGS=--check
 ```
 
@@ -21,7 +21,7 @@ After building clean release artifacts at the current full Git HEAD, package all
 installer artifacts in the group into a fresh directory:
 
 ```sh
-craftguild-standards package --group standards --output target/release-assets
+craftguild-standards-engine package --group standards --output target/release-assets
 make package PACKAGE_ARGS="--group standards --output target/release-assets"
 ```
 
@@ -32,6 +32,13 @@ output validation. The result contains `<command>-v<version>-<target>`, the same
 name plus `.bom.json`, and `SHA256SUMS-<target>.txt`. Package reads output paths
 from receipts and never builds, resolves dependencies or acquires an engine.
 The launcher requires an existing verified cache; run setup/build first.
+Standards declares both initializer and engine artifacts in one release group,
+with independent receipts, embedded/sidecar SBOMs and checksums. The public
+`scripts/install.sh` installs only `craftguild-standards`; its `init` acquires
+`craftguild-standards-engine` for the repository. The engine installer declaration
+also makes the second artifact available to common packaging. Source metadata
+schema 3 explicitly labels both roles per host. Published v0.4.0 remains a single
+full CLI and cannot be substituted for the new engine.
 Standards' delivery wrapper adds flat versioned host release metadata, then
 hashes every asset except checksum files. Local source ledgers stay local.
 

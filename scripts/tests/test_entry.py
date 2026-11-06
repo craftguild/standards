@@ -45,7 +45,7 @@ class EntryTests(unittest.TestCase):
         self.launch('build')
         self.assertEqual((f.root / 'dispatched').read_text(), 'build')
         self.assertEqual(len(f.calls()), 2)
-        cached = f.cache / 'craftguild-standards'
+        cached = f.cache / 'craftguild-standards-engine'
         cached.write_text('#!' + sys.executable + '\nimport pathlib\npathlib.Path("unverified").touch()\n')
         self.assertIn(b'digest differs', self.launch('build', success=False).stderr)
         self.assertFalse((f.root / 'unverified').exists())
@@ -113,18 +113,20 @@ class EntryTests(unittest.TestCase):
             machine = copy.deepcopy(f.machine)
             machine['engine'][field] = value
             f.fake_binary(machine)
-            f.release['hosts'][f.machine['target']]['binary']['sha256'] = digest(f.binary)
+            f.release['hosts'][f.machine['target']]['engine']['binary']['sha256'] = digest(f.binary)
             f.save()
             self.assertIn(b'compatibility differs', self.launch('setup', success=False).stderr)
             self.assertFalse(f.cache.exists())
-        for machine in [dict(f.machine, target='foreign'), dict(f.machine, clean=False)]:
+        for machine in [dict(f.machine, target='foreign'), dict(f.machine, clean=False),
+                        dict(f.machine, command='craftguild-standards'),
+                        {k: v for k, v in f.machine.items() if k != 'command'}]:
             f.fake_binary(machine)
-            f.release['hosts'][f.machine['target']]['binary']['sha256'] = digest(f.binary)
+            f.release['hosts'][f.machine['target']]['engine']['binary']['sha256'] = digest(f.binary)
             f.save()
             self.launch('setup', success=False)
             self.assertFalse(f.cache.exists())
         f.fake_binary(f.machine, embedded=b'wrong embedded sbom')
-        f.release['hosts'][f.machine['target']]['binary']['sha256'] = digest(f.binary)
+        f.release['hosts'][f.machine['target']]['engine']['binary']['sha256'] = digest(f.binary)
         f.save()
         self.assertIn(b'embedded SBOM differs', self.launch('setup', success=False).stderr)
         self.assertFalse(f.cache.exists())
@@ -168,7 +170,7 @@ class HostAcquisitionTests(unittest.TestCase):
         for system, suffix in [('Darwin', 'apple-darwin'), ('Linux', 'unknown-linux-gnu')]:
             for arch, architecture in [('arm64', 'aarch64'), ('x86_64', 'x86_64')]:
                 with self.subTest(system=system, arch=arch), tempfile.TemporaryDirectory() as name:
-                    machine = {'engine': {'version': '7.8.9', 'revision': 'a' * 40,
+                    machine = {'command': 'craftguild-standards-engine', 'engine': {'version': '7.8.9', 'revision': 'a' * 40,
                                           'baseline': '0.1.0', 'protocol': 'craftguild-execution-1',
                                           'entry_protocol': 'craftguild-entry-1'},
                                'target': architecture + '-' + suffix, 'clean': True}
@@ -176,7 +178,7 @@ class HostAcquisitionTests(unittest.TestCase):
                     # The host executable here is a test identity stub, not runtime qualification.
                     with patch.object(module.platform, 'system', return_value=system), patch.object(module.platform, 'machine', return_value=arch), patch.dict(module.os.environ, f.env):
                         binary = module.engine(f.root, f.entry, 'setup')
-                        self.assertEqual(binary, f.cache / 'craftguild-standards')
+                        self.assertEqual(binary, f.cache / 'craftguild-standards-engine')
                         self.assertEqual(len(f.calls()), 2)
                         self.assertTrue(all(machine['target'] in url for url in f.calls()))
                         module.engine(f.root, f.entry, 'prime')

@@ -61,3 +61,14 @@ inventing a public consumer pin. Optional old bundle-based pilot migration scrip
 have been retired. Their common guarantees are covered by standards' execution,
 flat entry, packaging and standalone-consumer tests; actual product gates remain
 with the unmodified products.
+
+
+The ADR 0006 source initializer `craftguild-standards` exposes only `init [--force]`
+and offline presentation. Repository operations use the pinned full
+`craftguild-standards-engine` through Make/launcher. Init selects its invoking
+published version/revision: upgrades are allowed; downgrades and same-version
+revision replacement need force. Force does not bypass verification or ownership.
+Exact retries reuse the reference; `make setup` only restores that fixed engine.
+Manually align common-crate Git revisions with the reported full revision and
+complete product adaptation/checks. Published v0.4.0 retains its old single-CLI
+behavior; do not assume it accepts the new flag or invent a public source pin.

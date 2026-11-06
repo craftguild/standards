@@ -1,4 +1,4 @@
-# Entry protocol craftguild-entry-1. Include from the product repository root.
+# Entry protocol craftguild-entry-1; operations use craftguild-standards-engine. Include from the product repository root.
 .DEFAULT_GOAL := build
 CRAFTGUILD_ENTRY_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 PREFIX ?= /usr/local

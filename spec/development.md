@@ -74,3 +74,16 @@ All ordinary operations and prime require its verified fixed repository-local
 cache. No Latest, compile or sibling fallback is provided. Prime presents the
 same engine's embedded context offline without writes or product execution;
 missing/malformed config is preparation status, never conformance success.
+
+
+ADR 0006 separates the installed `craftguild-standards` initializer from
+`craftguild-standards-engine`. Only `init [--force]` is an initializer operation;
+help/version/SBOM remain offline. Init selects its own exact clean published
+version/revision. Stable SemVer upgrades are allowed; downgrades and equal-version
+revision replacement require `--force`. Exact retries reuse the recorded pin and
+avoid mutable lookup or identical-file rewrites. Force never bypasses integrity,
+compatibility, ownership or concurrent-edit checks. Updates replace only proven
+managed baselines and publish the pin last, preserving the old pin/cache on failure.
+`make setup` acquires the current pin only. Manually align common-crate Git revisions
+and complete product adaptation/checks after updating. Published v0.4.0 retains
+its single-CLI and existing-pin behavior; no new release is implied by source work.

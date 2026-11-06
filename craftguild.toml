@@ -8,6 +8,12 @@ repository = "craftguild/standards"
 release_group = "standards"
 output = "scripts/install.sh"
 
+[[installers]]
+artifact = "standards-engine"
+repository = "craftguild/standards"
+release_group = "standards"
+output = "scripts/install-engine.sh"
+
 [[releases]]
 id = "standards"
 initial_version = "0.1.0"
@@ -18,7 +24,7 @@ paths = ["Cargo.toml", "Cargo.lock", "package.json", "package-lock.json", "crate
 manifest = "Cargo.toml"
 lockfile = "Cargo.lock"
 workspace = true
-packages = ["craftguild-cli", "craftguild-cli-build", "craftguild-core", "craftguild-standards"]
+packages = ["craftguild-cli", "craftguild-cli-build", "craftguild-core", "craftguild-standards", "craftguild-initializer"]
 [[releases.npm]]
 manifest = "package.json"
 lockfile = "package-lock.json"
@@ -32,6 +38,17 @@ npm_lockfiles = ["package-lock.json", "examples/embedded-web/web/package-lock.js
 [[artifacts]]
 id = "standards"
 command = "craftguild-standards"
+project = "standards"
+kind = "rust"
+manifest = "Cargo.toml"
+lockfile = "Cargo.lock"
+package = "craftguild-initializer"
+inputs = ["assets/banner.txt", "Makefile", "adapters/npm-tests.cjs", "conformance/contracts.json", "docs/guides/adoption.md", "docs/guides/installers.md", "templates/launcher.py", "templates/make/common.mk", "templates/local-skill.md", "templates/craftguild.toml"]
+input_dirs = ["assets/fonts", "schemas", "spec", "docs/design", "skills"]
+
+[[artifacts]]
+id = "standards-engine"
+command = "craftguild-standards-engine"
 project = "standards"
 kind = "rust"
 manifest = "Cargo.toml"

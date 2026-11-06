@@ -40,3 +40,14 @@ certificate. Publication, product migration, installation and service operations
 require the active request's authorization. Stage-one standards work does not
 itself authorize stage-two adoption. Report executed evidence and unexecuted hosts
 precisely; never claim an unexecuted or failed check passed.
+
+
+The ADR 0006 source initializer `craftguild-standards` exposes only `init [--force]`
+and offline presentation. Repository operations use the pinned full
+`craftguild-standards-engine` through Make/launcher. Init selects its invoking
+published version/revision: upgrades are allowed; downgrades and same-version
+revision replacement need force. Force does not bypass verification or ownership.
+Exact retries reuse the reference; `make setup` only restores that fixed engine.
+Manually align common-crate Git revisions with the reported full revision and
+complete product adaptation/checks. Published v0.4.0 retains its old single-CLI
+behavior; do not assume it accepts the new flag or invent a public source pin.

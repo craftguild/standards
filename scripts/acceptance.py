@@ -17,15 +17,21 @@ def run(binary, cwd, args, env):
     return result.stdout
 
 
-def verify(root):
-    prepared = json.loads((root / '.craftguild/craftguild-standards/prepared.json').read_text())
+def verify_artifact(root, command):
+    prepared = json.loads((root / f'.craftguild/{command}/prepared.json').read_text())
     target_dir = Path(os.environ.get('CARGO_TARGET_DIR', 'target'))
     if not target_dir.is_absolute():
         target_dir = root / target_dir
-    binary = target_dir / prepared['build']['target'] / 'release/craftguild-standards'
+    binary = target_dir / prepared['build']['target'] / ('release/' + command)
     if not binary.is_file():
         raise ValueError('Run make build before acceptance.')
     expected_sbom = (root / prepared['sbom']).read_bytes()
+    bom = json.loads(expected_sbom)
+    assert prepared['build']['command'] == command
+    assert bom['metadata']['component']['name'] == command
+    properties = {p['name']: p['value'] for p in bom['metadata']['properties']}
+    assert set(properties) == {'craftguild:build', 'craftguild:features'}
+    assert json.loads(properties['craftguild:build']) == prepared['build']
     contract = json.loads((root / 'conformance/contracts.json').read_text())['presentation']
     with tempfile.TemporaryDirectory(prefix='craftguild-acceptance-') as temporary:
         temp = Path(temporary)
@@ -49,21 +55,30 @@ def verify(root):
         assert b'\x1b' not in bare
         assert expected_sbom == run(copied, isolated, ['sbom'], env)
         assert json.loads(expected_sbom)['specVersion'] == '1.5'
-        for command in ['banner', 'build', 'prepare', 'check']:
-            help_text = run(copied, isolated, [command, '--help'], env)
+        operations = ['banner', 'build', 'prepare', 'check'] if command.endswith('-engine') else ['init']
+        for operation in operations:
+            help_text = run(copied, isolated, [operation, '--help'], env)
             assert help_text.startswith(b'Usage:') and b'craftguild/standards' not in help_text
         assert before == {p.name: p.read_bytes() for p in isolated.iterdir()}
-        stage = temp / 'stage'
-        subprocess.run(['make', 'install', f'DESTDIR={stage}', 'PREFIX=/opt/craftguild',
-                        f'CARGO_TARGET_DIR={target_dir}'], cwd=root, check=True)
-        installed = stage / 'opt/craftguild/bin/craftguild-standards'
-        assert installed.read_bytes() == binary.read_bytes()
-        empty = temp / 'empty-target'
-        missing = subprocess.run(['make', 'install', f'DESTDIR={stage}',
-                                  f'CARGO_TARGET_DIR={empty}'], cwd=root,
-                                 capture_output=True)
-        assert missing.returncode and b'Run make build' in missing.stderr
+        if not command.endswith('-engine'):
+            for operation in ['prime', 'build', 'check', 'release', 'engine-identity']:
+                result = subprocess.run([str(copied), operation], cwd=isolated, env=env, capture_output=True)
+                assert result.returncode and b'pinned repository entry' in result.stderr
+            stage = temp / 'stage'
+            subprocess.run(['make', 'install', f'DESTDIR={stage}', 'PREFIX=/opt/craftguild',
+                            f'CARGO_TARGET_DIR={target_dir}'], cwd=root, check=True)
+            installed = stage / 'opt/craftguild/bin/craftguild-standards'
+            assert installed.read_bytes() == binary.read_bytes()
+            empty = temp / 'empty-target'
+            missing = subprocess.run(['make', 'install', f'DESTDIR={stage}',
+                                      f'CARGO_TARGET_DIR={empty}'], cwd=root, capture_output=True)
+            assert missing.returncode and b'Run make build' in missing.stderr
     print('PASS: isolated offline presentation, exact SBOM, subcommand help and staged install')
+
+
+def verify(root):
+    for command in ['craftguild-standards', 'craftguild-standards-engine']:
+        verify_artifact(root, command)
 
 
 if __name__ == '__main__':

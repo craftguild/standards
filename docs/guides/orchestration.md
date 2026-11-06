@@ -1,6 +1,8 @@
 # Build execution
 
-The source engine implements ADR 0004 fixed-reference initialization and prime.
+The source implements ADR 0006 initializer/engine separation and controlled
+updates, extending ADR 0004 initialization and prime. Published v0.4.0 still uses
+one full CLI and retains existing pins.
 Published v0.3.0 and earlier releases retain their old delivery contracts; they
 cannot initialize this workflow. A release implementing this source is required
 for published adoption. Do not pin an older asset to unpublished source.
@@ -30,9 +32,19 @@ resolve Latest or consult sibling checkouts. Invalid caches fail closed. Hash,
 revision, host and compatibility validation precede operational execution.
 
 Prime is read-only offline Markdown from the pinned engine's embedded documents,
-even when the invoking installed tool differs. Missing, incomplete or malformed
+independently of the installed initializer version. Missing, incomplete or malformed
 product config is reported as preparation status, not successful conformance.
 Topics and full-revision source links need no copied rules tree.
+
+To update, install the desired published initializer and run `craftguild-standards
+init` in the repository root. It selects its own exact version and full revision.
+Upgrades use numeric stable SemVer; `init --force` additionally permits downgrades
+and same-version revision replacement. It never overrides consumer edits, invalid
+hashes or unsupported protocols. Exact retries revalidate without mutable lookup
+or rewriting managed files. Manually align common-crate Git revisions with the
+reported revision, adapt config/APIs and run product checks. Setup never updates.
+An independent clone needs only the committed entry and explicit `make setup`,
+without a global initializer installation.
 
 After configuration, use the common operations:
 

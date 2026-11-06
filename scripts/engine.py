@@ -9,7 +9,7 @@ import sys
 
 
 def verified_engine(root):
-    record = root / '.craftguild/craftguild-standards/receipt.json'
+    record = root / '.craftguild/craftguild-standards-engine/receipt.json'
     if not record.is_file():
         raise ValueError('No verified engine found. Run make build without privileges first.')
     receipt = json.loads(record.read_text())

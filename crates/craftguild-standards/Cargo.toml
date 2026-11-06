@@ -14,7 +14,7 @@ distribution = []
 bootstrap = []
 
 [[bin]]
-name = "craftguild-standards"
+name = "craftguild-standards-engine"
 path = "src/main.rs"
 required-features = ["distribution"]
 

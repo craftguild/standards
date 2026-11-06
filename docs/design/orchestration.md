@@ -211,7 +211,7 @@ the captured bytes with an unchecked second read; a receipt/hash mismatch fails.
 ## Standalone entry and dispatch
 
 ADR 0004 replaces execution/skill archives with a fixed release reference and
-small shared entry. See [initialization](initialization.md) for schema 2 reference
+small shared entry. See [initialization](initialization.md) for schema 3 reference
 ownership, embedded context, entry protocol, acquisition, cache validation and
 rollback. Entry compatibility is `craftguild-entry-1`; execution receipts retain
 `craftguild-execution-1`. Only init and explicit setup may acquire an engine;

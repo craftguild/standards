@@ -1,0 +1,27 @@
+[package]
+name = "craftguild-initializer"
+description = "Craftguild repository initializer"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.95"
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[features]
+default = ["distribution"]
+distribution = []
+bootstrap = ["craftguild-standards/bootstrap"]
+
+[[bin]]
+name = "craftguild-standards"
+path = "src/main.rs"
+required-features = ["distribution"]
+
+[dependencies]
+craftguild-cli.workspace = true
+craftguild-core.workspace = true
+craftguild-standards = { path = "../craftguild-standards", default-features = false }
+
+[build-dependencies]
+craftguild-cli-build.workspace = true

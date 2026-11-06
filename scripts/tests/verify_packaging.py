@@ -14,7 +14,7 @@ from release_metadata import merge
 
 
 def verify(root, destination):
-    receipt_file = root / '.craftguild/craftguild-standards/receipt.json'
+    receipt_file = root / '.craftguild/craftguild-standards-engine/receipt.json'
     original = json.loads(receipt_file.read_bytes())
     binary = Path(original['context']['output'])
     bom = root / original['prepared']['sbom']
@@ -22,8 +22,9 @@ def verify(root, destination):
     files = {p.name: p.read_bytes() for p in (destination / 'host').iterdir()}
     target = original['context']['target']
     version = original['prepared']['build']['version']
-    stem = f'craftguild-standards-v{version}-{target}'
-    assert set(files) == {stem, stem + '.bom.json', f'craftguild-release-v{version}-{target}.json',
+    stem = f'craftguild-standards-engine-v{version}-{target}'
+    initializer = f'craftguild-standards-v{version}-{target}'
+    assert set(files) == {stem, stem + '.bom.json', initializer, initializer + '.bom.json', f'craftguild-release-v{version}-{target}.json',
                           f'SHA256SUMS-{target}.txt'}
     checksums = ''.join(f'{hashlib.sha256(files[name]).hexdigest()}  {name}\n'
                         for name in sorted(files) if not name.startswith('SHA256SUMS'))

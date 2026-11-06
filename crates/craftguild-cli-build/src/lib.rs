@@ -62,7 +62,7 @@ pub fn emit(root: &Path, command: &str) -> Result<BuildInfo> {
         prepared.verify(root, &info, &prepared.features)
     })();
     let bytes = result.map_err(|e| {
-        format!("Craftguild preparation failed: {e}. Run `make build` (or craftguild-standards build) first.")
+        format!("Craftguild preparation failed: {e}. Run `make build` (or craftguild-standards-engine build) first.")
     })?;
     write_changed(&out.join("craftguild-sbom.json"), &bytes)?;
     let dirty = match info.dirty {

@@ -1,28 +1,28 @@
 # Initialization and pinned context
 
-ADR 0004 replaces archive delivery in the source engine. Published v0.3.0 does
-not implement it. The normative baseline remains 0.1.0 and the execution receipt
+ADR 0004 replaces archive delivery; ADR 0006 separates initializer and engine
+and controls explicit updates. Published v0.4.0 retains ADR 0004 single-CLI behavior. The normative baseline remains 0.1.0 and the execution receipt
 protocol remains `craftguild-execution-1`.
 
 ## Reference and entry ownership
 
 `standards/engine.json` is the one committed provenance authority. Reference
-schema 2 records the engine version, full clean source revision, baseline,
+schema 3 records the engine version, full clean source revision, baseline,
 execution protocol, entry protocol `craftguild-entry-1`, exact HTTPS binary/SBOM
-assets by supported host, and hashes of the two managed entry files:
+assets by supported host, and managed ownership hashes, including the two entry files:
 `standards/launcher.py` and `standards/make/common.mk`. No archive or source ledger
 is distributed. A versioned release metadata index combines independently
 qualified host deliveries; unavailable hosts are absent, never inferred from
 another host's asset. Init checks the index against the invoking clean tool.
 
 Init's root is exactly cwd. New references require published version metadata;
-source builds without matching publication are refused. Existing references are
-reused without a mutable lookup or implicit upgrade. A different installed tool
-delegates to the existing verified pinned engine for initialization and prime.
+source builds without matching publication are refused. Init selects the invoking initializer or engine version/revision using the
+update policy below. Exact retries reuse recorded metadata without mutable lookup.
+Repository prime always uses the fixed verified engine.
 Consumers later use that same full revision in common-crate declarations.
 Known old pins at `standards/manifest.json` or `standards/execution/engine.json`
 require explicit migration. Init checks them before release lookup, engine
-acquisition or delegation, and refuses to create a second pin authority. It leaves
+acquisition or publication, and refuses to create a second pin authority. It leaves
 the legacy files and product Make recipes untouched and provides no legacy loader.
 
 The small common Python launcher owns host selection, HTTPS acquisition and
@@ -50,7 +50,12 @@ Plan all writes and check conflicts/symlinks before acquisition or publication.
 Hold an exclusive init lock, stage replacements, recheck observed bytes before
 each write and publish the reference last. On failure restore only still-owned
 written bytes, in reverse order; preserve unrelated/concurrently changed data
-and valid cache entries. Identical files require no writes. Never initialize Git,
+and valid cache entries. Before publication, owned staging retains each replaced
+file's previous bytes and permission mode. Rollback restores that staged file by
+rename, without requiring write permission on a read-only replacement. A failed
+restore does not stop other owned restores; retain the recovery staging and report
+its location with per-file failures rather than discard the previous bytes.
+Identical files require no writes. Never initialize Git,
 search parent/sibling checkouts, untrack files or modify global settings.
 
 This is a transient technical operation: immutable references, staging and cache
@@ -61,7 +66,7 @@ transition table or Header-Detail records are introduced (design-baselines).
 ## Prime
 
 Canonical contracts and adoption/configuration guidance are embedded and sealed
-engine inputs. Public prime delegates to the pin's verified cache. The internal
+engine inputs. Repository prime delegates to the pin's verified cache. The internal
 context renderer checks that its own identity matches the pin; it reads product
 configuration without running product code. Missing, malformed or incomplete
 configuration is preparation status, never conformance success.
@@ -72,3 +77,35 @@ Prime never downloads, writes, compiles, generates or checks products. The
 overview assigns common engine/font/measurement tests to standards and SDK/ABI,
 generator, domain and actual integration checks to products. Generic counter gaps
 remain upstream work; no product-specific counter is generated.
+
+## ADR 0006 update design
+
+The source initializer exposes only `init [--force]` and offline presentation;
+the separate engine owns all operations. Both artifacts belong to one release
+group, version and full clean revision. Release metadata schema 3 maps every host
+to explicit `initializer` and `engine` binary/SBOM pairs. Machine engine identity
+also includes its command, preventing initializer or historical full-CLI substitution.
+
+Reference schema 3 retains entry hashes and adds hashes for the local Skill and
+AGENTS common block. Schema 2 flat references can be updated only when their
+entry hashes and actual files, Skill and common block match the frozen ADR 0004
+baseline. Unknown baselines, edited blocks and unsupported protocols fail closed.
+The legacy release metadata remains readable for ownership assessment, but new
+initialization requires role-separated metadata. No legacy binary is downloaded
+or executed to establish ownership.
+
+Stable SemVer comparison happens before transport or writes. Newer tools upgrade;
+equal version/revision revalidates the recorded reference without release lookup;
+older tools and equal-version revision changes need `--force`. Force changes only
+this policy. Exact retries preserve all managed bytes and restore only missing
+cache. Other updates select the invoking clean published tool's exact identity.
+
+The exclusive lock spans release lookup, acquisition and publication. All observed
+inputs, including the previous pin, are rechecked before publication. The staged
+engine is verified before replacements, and the pin is published last. Rollback
+restores only still-owned bytes; caches remain distinct by reference and host.
+Config, Make recipes, AGENTS product contracts and dependency inputs retain their
+consumer ownership. Common-crate revision changes remain manual adoption work.
+
+This remains a transient provenance/consistency boundary. There is no business
+entity, transition-history table or Header-Detail aggregate (design-baselines).

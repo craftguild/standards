@@ -45,7 +45,7 @@ output="scripts/download.sh"
         generated = (root / 'scripts/download.sh').read_bytes()
         run(root, ['make', 'installer', 'INSTALLER_ARGS=--artifact backend --check'])
         run(root, [sys.executable, 'standards/launcher.py', 'installer', '--check'])
-        engine = next((root / '.craftguild/engine').glob('*/*/craftguild-standards'))
+        engine = next((root / '.craftguild/engine').glob('*/*/craftguild-standards-engine'))
         run(root, [engine, 'installer', '--artifact', 'backend'])
         assert (root / 'scripts/download.sh').read_bytes() == generated
         (root / 'scripts/download.sh').write_bytes(generated + b'# drift\n')

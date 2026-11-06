@@ -12,11 +12,11 @@ from verify_identity import verify as verify_identity
 
 
 def verify(root):
-    own = json.loads((root / '.craftguild/craftguild-standards/prepared.json').read_text())
+    own = json.loads((root / '.craftguild/craftguild-standards-engine/prepared.json').read_text())
     own_target = Path(os.environ.get('CARGO_TARGET_DIR', 'target'))
     if not own_target.is_absolute():
         own_target = root / own_target
-    tool = own_target / own['build']['target'] / 'release/craftguild-standards'
+    tool = own_target / own['build']['target'] / 'release/craftguild-standards-engine'
     if not tool.is_file():
         raise ValueError('Run make build before verifying examples.')
     with tempfile.TemporaryDirectory(prefix='craftguild-example-build-') as temporary:

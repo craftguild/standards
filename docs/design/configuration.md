@@ -212,3 +212,13 @@ Init preserves any existing config and never infers packages, source roles or
 adapter gates. Prime reads preparation status independently of operational
 validation and returns the fixed engine's embedded documents. See
 [initialization](initialization.md); published v0.3.0 does not provide it.
+
+
+ADR 0006 source builds expose an init-only `craftguild-standards` and full
+`craftguild-standards-engine`, sharing one release group/version/revision with
+independent artifact preparation and receipts. Published v0.4.0 has one full CLI.
+`init [--force]` selects the invoking published release; numerical upgrades are
+allowed, while downgrades and same-version revision changes require force.
+Config and Cargo/npm inputs remain product-owned; manually align common-crate Git
+revisions after updating. See [initialization](initialization.md) for reference
+schema 3, known schema 2 baseline updates and integrity/ownership requirements.
