@@ -4,7 +4,20 @@
 own real SBOMs, then builds both locked release binaries. The bootstrap has no final
 version/SBOM presentation path. `make test` runs ordinary Rust, npm and Python tests. `make check`
 uses the common engine, roles, counter and configured adapters. `make acceptance`
-needs an already-built release executable and uses only temporary resources.
+needs both already-built release executables and uses only temporary resources.
+
+Build the default native artifacts from the standards checkout:
+
+```sh
+cargo fetch --locked
+make build
+make acceptance
+```
+
+The outputs are `target/<target-triple>/release/craftguild-standards` and
+`craftguild-standards-engine`. The installed initializer exposes only init; use the
+engine or repository entry for other operations. Before `make check`, prepare
+`npm ci`, tokei 15.0.0 and the required Rust format/lint components.
 
 Git conformance tests require GnuPG 2 with Ed25519 support. They create disposable
 keyrings and test keys, sign each fixture commit with OpenPGP, verify the resulting
@@ -77,7 +90,7 @@ listed; all hosts must share version, full revision and compatibility. It invoke
 or publishes. CI retains these assets for the exact tested commit; tagging and
 publication remain separate authorized operations.
 
-The source engine also supports [download installers](installers.md) and common
+The engine also supports [download installers](installers.md) and common
 release assets. Ordinary Rust build resolution/compilation uses locked offline
 Cargo inputs. Obtain dependencies explicitly before building (for example,
 `cargo fetch --locked`); builds do not install toolchains, SDKs or npm dependencies.

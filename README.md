@@ -1,131 +1,120 @@
-# Craftguild standards
+# CraftGuild standards
 
 Shared CLI presentation, artifact SBOM preparation, quality checks and development
-contracts for Craftguild products. Language-neutral rules are backed by Rust and
+contracts for CraftGuild products. Language-neutral rules are backed by Rust and
 npm adapters and the `craftguild-standardize` agent skill.
 
-The source engine supports fixed-reference repository initialization, offline
-`prime` topics, shared builds, standard Rust outputs, verified packaging and
-download installers. Source separates the init-only `craftguild-standards` from
-`craftguild-standards-engine`; published v0.4.0 still has one full CLI and retains
-existing pins. Engine versions and the normative 0.1.0 baseline have
-separate compatibility identifiers; unpublished source is not a public pin.
+`craftguild-standards` initializes and updates repositories. The separate
+`craftguild-standards-engine` runs builds, checks, packaging and releases through
+each repository's fixed entry. `make prime` reads that engine's embedded rules.
+Engine versions and the normative **0.1.0** baseline are separate.
 
 ## Quick start
 
-With the [build tools](#build-requirements) available, build from source:
+Install the initializer with POSIX sh, curl, and sha256sum or shasum available.
+Initialization also needs Python 3. From the root of the repository to initialize:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/craftguild/standards/v0.5.0/scripts/install.sh | sh -s -- --version 0.5.0
+"$HOME/.local/bin/craftguild-standards" init
+make prime
+```
+
+The installer defaults to `~/.local/bin`. Init acquires the same published
+version/revision of the engine and creates the reference, common entry and local
+Skill. Configure real artifacts before building. If a Makefile already exists,
+wire `include standards/make/common.mk`; until then use
+`python3 standards/launcher.py prime`. See the [execution guide](docs/guides/orchestration.md).
+
+After cloning an already initialized repository, run `make setup`, then
+`make prime`. The committed entry acquires its fixed engine; no global CLI is
+required. The [installer guide](docs/guides/installers.md#download-installation)
+covers custom destinations and uninstalling only the initializer binary.
+
+## System requirements
+
+Release binaries target macOS arm64 and Linux x86_64 (GNU). Both binaries' help,
+version and SBOM operations, plus the engine's banner, need only the binary.
+
+Init and explicit setup need Python 3, curl and HTTPS access to release assets.
+The shared entry needs Python 3; Make is the convenient command interface.
+Prime reads the verified cache offline, without compilers or product execution.
+Builds and checks need the selected language tools, SDKs and dependencies.
+
+The consumer libraries `craftguild-cli`, `craftguild-cli-build` and
+`craftguild-core` support Rust 1.85. Building the standards tools requires a
+separate toolchain. Platform qualification is recorded in the
+[verification guide](docs/guides/verification.md).
+
+## Build requirements
+
+- Rust/Cargo 1.95, Git, Make and Python 3 to build standards from source.
+- tokei **15.0.0** with JSON serialization, Node.js/npm and GnuPG 2 with Ed25519
+  support for repository checks. CI uses Node.js 24.
+- The configured bundler, type checker and language tools for each Web example.
 
 ```sh
 git clone https://github.com/craftguild/standards.git
 cd standards
 cargo fetch --locked
-make
+make build
 ```
 
-The build prints the target triple and prepares both executables under
-`target/<target>/release/`. Run `craftguild-standards --help` to see the initializer
-interface, or `craftguild-standards-engine banner product` to generate artwork.
-Both support offline `--version` and `sbom`. The SBOM is embedded and prints as
-CycloneDX 1.5 JSON without a banner.
+This produces `craftguild-standards` and `craftguild-standards-engine` under
+`target/<target-triple>/release/`, each with its own embedded SBOM. Ordinary builds
+use locked offline dependencies; they do not install dependencies or toolchains.
+Run `npm ci` before `make test` or `make check`. The Web examples have their own
+lockfiles; see the [development guide](docs/guides/development.md) for preparation.
 
-## System requirements
-
-Both binaries' help, version and SBOM operations, plus the engine's banner,
-require no language runtime, Git, network, configuration or daemon. Build and quality operations need
-the appropriate build tools and a repository checkout.
-
-Init and explicit setup need Python 3, curl and HTTPS access to the fixed release
-assets. The shared entry and prime need Python 3 and an existing verified cache;
-prime itself needs no network, compiler or product execution.
-
-The consumer libraries `craftguild-cli`, `craftguild-cli-build` and
-`craftguild-core` declare Rust 1.85 compatibility. The standards executable uses
-a separate toolchain requirement. Platform gates and evidence requirements are in the
-[verification guide](docs/guides/verification.md).
-
-## Build requirements
-
-- Rust/Cargo 1.95 for the standards tool; Git; Make; Python 3 for repository scripts.
-- tokei **15.0.0** with JSON serialization for quality checks.
-- npm and a project's configured bundler/type/lint/test tools for npm distributions.
-- GnuPG 2 with Ed25519 support for signed Git conformance fixtures.
-
-Run `npm ci` in this repository before `make test` or `make check`; the npm adapter
-uses the pinned TypeScript parser. The Web examples have their own lockfiles and
-need `npm ci` in their frontend directories before their checks/builds.
-
-Fetch locked Cargo dependencies explicitly with `cargo fetch --locked` before
-building; ordinary builds use offline resolution and do not install dependencies,
-toolchains or SDKs.
-
-Small Slant font data and CycloneDX schemas are pinned and included. No Node.js
-process or font download is needed to generate a banner. Dependencies are locked
-in Cargo.lock. `make install` only copies a built binary and supports `PREFIX`,
-`BINDIR` and `DESTDIR`; its default destination is `/usr/local/bin`.
+Small Slant font data and CycloneDX schemas are pinned and included. Source-build
+`make install` copies the built initializer and supports `PREFIX`, `BINDIR` and
+`DESTDIR`, defaulting to `/usr/local/bin`. This differs from download installation.
 
 ## Usage
 
+After configuring the product, use its pinned entry:
+
 ```sh
-craftguild-standards init
 make prime PRIME_ARGS="--topic configuration"
-craftguild-standards-engine banner standards --output assets/banner.txt
-craftguild-standards-engine banner standards --check assets/banner.txt
-craftguild-standards-engine build --artifact standards
-craftguild-standards-engine build --artifact standards --profile debug
-craftguild-standards-engine installer --check
-craftguild-standards-engine package --group standards --output target/release-assets
-craftguild-standards-engine check --json
-craftguild-standards-engine release --json
+make build
+make build BUILD_ARGS="--profile debug"
+make check
+make acceptance
+make release RELEASE_ARGS=--json
 ```
 
-Init requires a clean published implementing initializer or engine and preserves existing config
-and recipes. It updates to the invoking tool's exact version/revision, allowing
-upgrades. `init --force` permits downgrades and same-version revision replacement
-while retaining all integrity and ownership checks. Exact retries reuse recorded
-metadata; `make setup` acquires the current pin only. Manually align common-crate
-Git revisions after updates. Its starter is unfinished; use prime, then configure actual artifacts,
-source roles, language adapters and repository checks in
-[`craftguild.toml`](craftguild.toml). Read the [contracts](spec/README.md),
-[architecture](docs/design/architecture.md), [configuration](docs/design/configuration.md)
-and [skill](skills/craftguild-standardize/SKILL.md).
-The [execution guide](docs/guides/orchestration.md) explains
-initialization, the fixed Make/launcher entry, hooks, receipts and copy-only installation.
-The [installer guide](docs/guides/installers.md) explains release packaging and the
-standalone download installer. After publication of this source script, its raw
-URL supports `curl -fsSL <Raw URL> | sh -s --`, with optional `--version X.Y.Z`,
-`--bindir /absolute/path` or `--uninstall`. It requires sh, curl, standard utilities
-and sha256sum or shasum; its default is `$HOME/.local/bin`. It verifies SHA-256
-before atomic replacement and preserves settings on uninstall. This route is
-separate from source-build `make install` and its `/usr/local/bin` default.
-Use `make release RELEASE_ARGS=--json` to preview version updates and generated
-notes, then `make release` to prepare them locally. See the
-[release guide](docs/guides/releases.md) for groups, signed history and publication.
-Common crates use fixed full Git revisions from this repository and are not
-published to crates.io. A product retains its own argument grammar and passes
-`Brand`, `BuildInfo` and embedded SBOM bytes to the output functions.
-See the [standalone Rust](examples/rust-only/README.md),
+A missing cache requires explicit `make setup`; ordinary operations never
+download or upgrade the engine. Read the [configuration](docs/design/configuration.md)
+and [release guide](docs/guides/releases.md) before configuring builds or preparing a release.
+
+To upgrade, install the desired initializer and run `craftguild-standards init`
+again. It selects that CLI's exact version/revision. Older versions and
+same-version revision changes require `init --force`; local edits and integrity
+checks remain protected. Manually align common-crate Git revisions and finish
+product adaptation after updating. See the [update policy](docs/design/initialization.md#update-policy).
+
+Common crates use full Git revisions and are not published to crates.io. Products
+retain their own argument grammar and pass `Brand`, `BuildInfo` and embedded SBOM
+bytes to the output functions. See the [standalone Rust](examples/rust-only/README.md),
 [embedded Web](examples/embedded-web/README.md) and
 [independent frontend/backend](examples/independent/README.md) examples.
-Use `check --changed --json` after implementation edits to narrow source measurement.
+Use `make check CHECK_ARGS="--changed --json"` to narrow source measurement.
 
 ## Known limitations
 
 - The npm adapter consumes esbuild metafiles and package-lock v3. Other bundlers
   need an explicit adapter/evidence conversion; package discovery alone cannot
   establish which code shipped.
-- Rust dependency reporting is package-granular. It follows the selected Cargo
-  runtime graph, excluding development/build/procedural-macro edges; it does not
+- Rust dependency reporting follows the selected Cargo runtime graph at package
+  granularity. It excludes development/build/procedural-macro edges and does not
   claim symbol-level linker reachability.
-- SeaORM inspection parses syntax and macro token identifiers. It does not perform
-  compiler name/type resolution or expand arbitrary external macros.
+- SeaORM inspection parses syntax and macro tokens, without compiler name/type
+  resolution or expansion of arbitrary external macros.
 - Unsupported conditional test separation is reported as unmeasured.
-- Setup selects only host assets present in the fixed release reference. Missing
-  caches require explicit setup; ordinary operations and prime never acquire an
-  engine. Toolchains and SDKs remain separate prerequisites.
-- Subprocess execution requires a Unix host. Non-Unix execution is refused before
-  spawning tools; consumer-library compatibility is a separate contract.
-- Release acceptance and publication evidence remain requirements until recorded
-  against the final source; a local focused test is not a platform certification.
+- Setup selects only hosts present in the fixed release reference. Toolchains and
+  SDKs remain separate prerequisites. Subprocess execution requires a Unix host.
+- Old bundle references require explicit migration. Historical v0.4.0 has a single
+  full CLI; it does not provide the split interface or force policy described here.
 
 ## Community
 

@@ -10,8 +10,15 @@ In initialized consumers run `make prime` (or `python3 standards/launcher.py pri
 then the relevant `--topic NAME` documents. The fixed reference selects the engine
 and embedded rules. Missing cache requires explicit `make setup`. Never substitute
 another installed tool's rules, invent a public pin or copy rules/binaries into
-the consumer. Published v0.3.0 does not implement init/prime or flat reference
-acquisition; source development and publication are separate qualifications.
+the consumer. Source development and publication are separate qualifications.
+
+The installed `craftguild-standards` exposes `init [--force]` and offline
+presentation. Repository operations use the pinned full engine through Make or
+launcher. Init selects its own published version/revision: upgrades are allowed;
+downgrades and same-version revision changes require force. Force never bypasses
+verification or ownership. Exact retries reuse the reference; setup never updates.
+Use the split grammar with v0.5.0 or later, not historical v0.4.0's single CLI.
+After updating, manually align common-crate Git revisions and finish adaptation.
 
 In the standards source checkout use the canonical [contracts](../../spec/README.md),
 [configuration](../../docs/design/configuration.md), [execution design](../../docs/design/orchestration.md)
@@ -40,14 +47,3 @@ certificate. Publication, product migration, installation and service operations
 require the active request's authorization. Stage-one standards work does not
 itself authorize stage-two adoption. Report executed evidence and unexecuted hosts
 precisely; never claim an unexecuted or failed check passed.
-
-
-The ADR 0006 source initializer `craftguild-standards` exposes only `init [--force]`
-and offline presentation. Repository operations use the pinned full
-`craftguild-standards-engine` through Make/launcher. Init selects its invoking
-published version/revision: upgrades are allowed; downgrades and same-version
-revision replacement need force. Force does not bypass verification or ownership.
-Exact retries reuse the reference; `make setup` only restores that fixed engine.
-Manually align common-crate Git revisions with the reported full revision and
-complete product adaptation/checks. Published v0.4.0 retains its old single-CLI
-behavior; do not assume it accepts the new flag or invent a public source pin.

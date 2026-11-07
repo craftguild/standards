@@ -435,6 +435,10 @@ index remains unchanged; no real commit/tag/push, release preparation or
 publication was performed.
 
 The implementation and ownership/error paths received a read-only self-review.
-A new independent review has **not** been performed. `standards-2bi` is reopened
-and remains in progress pending that review; the previous closure is not treated
-as approval of this correction.
+Independent re-review passed after this correction. The unchanged original driver
+restored prior bytes, modes and pin consistency in three cases; the four rollback
+regressions, 15 initialization tests, all eight gates, both binary acceptance and
+Rust 1.85 checks passed independently. No additional findings were reported, and
+`standards-2bi` is closed. Evidence is `.craftguild/adr6-independent-rereview-k4n_o1b9/`.
+That focused re-review confirmed the full isolated-consumer log above without
+rerunning that complete matrix. Linux and remote CI remained unexecuted there.

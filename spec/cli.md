@@ -28,7 +28,7 @@ nonmutating `--check`. Products commit and embed the generated text, requiring
 neither Node.js, fonts nor generation tools at build/run time.
 
 
-ADR 0006 source separates standards' two command roles. The installed
+Standards has two executable roles. The installed
 `craftguild-standards` accepts only `init [--force]` as an operation;
 `craftguild-standards-engine` provides all engine operations, including init and
 prime. Both retain this offline presentation contract and identify their own

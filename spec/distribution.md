@@ -27,9 +27,8 @@ binary and writes the saved JSON verbatim.
 The current engine writes prepared seal schema 2 for this separation.
 Published v0.1.0 and its schema 1 artifacts remain unchanged and readable.
 
-The ADR 0003 source extension adds opt-in schema 2 standard Rust output layout,
-receipt-backed `package` and declarative POSIX shell `installer` generation.
-Published v0.2.0 remains unchanged. Standard layout fixes all Rust final outputs
+Schema 2 supports standard Rust output layout, receipt-backed `package` and
+declarative POSIX shell `installer` generation. Standard layout fixes all Rust final outputs
 at `<target-dir>/<target-triple>/<profile>/<file>`, including native builds and
 library formats. Explicit Rust output overrides are refused in this mode.
 Frontend locations and configurations without the mode keep their contracts.
@@ -45,17 +44,17 @@ GitHub repository and safe relative script output. Runtime options select a stab
 version and absolute destination; ordinary checks reject generated script drift.
 
 
-ADR 0004 source delivery replaces execution/skill archives with flat host binaries,
+Fixed-reference delivery replaces execution/skill archives with flat host binaries,
 matching SBOMs, target checksums and versioned release metadata. The release index
 names exact full revision, baseline, entry/execution compatibility and exact HTTPS
-asset SHA-256 values by supported host. The binary embeds its matching canonical
+asset SHA-256 values by supported host. The engine embeds its matching canonical
 contracts and adoption/configuration guidance as owned, sealed build inputs.
-Init commits only a fixed reference, common entry, short local skill and product
-configuration. It never relabels old assets as unpublished features. Published
+Repositories track a fixed reference, common entry, short local skill and product
+configuration. Init does not create Git commits or relabel old assets as new features. Published
 v0.3.0 and earlier assets/notes/receipts retain their original contracts.
 
 
-ADR 0006 source delivery has two artifact identities in the same release group:
+Standards delivery has two artifact identities in the same release group:
 `craftguild-standards` (initializer) and `craftguild-standards-engine` (full engine),
 with one version and full clean revision. Each has independent embedded/sidecar
 SBOMs and checksums. Release metadata schema 3 explicitly names initializer and

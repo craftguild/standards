@@ -41,7 +41,10 @@ Generated notes and a deterministic JSON receipt go into the group's public note
 directory. Repeating preparation verifies those exact files and reports the same
 pending release. It also works after committing only the prepared edits. New source
 work while a release is pending is rejected; finish that release or explicitly
-revert its preparation first. Never overwrite a release tag.
+revert its preparation first. This includes documentation embedded in the engine:
+restore the pending version/notes/receipt edits before committing the additional
+source, then prepare again and qualify the new final revision. Preserve previous
+release tags, assets and notes. Never overwrite a release tag.
 
 Review and sign the prepared changes with the approved personal OpenPGP key, verify
 the full commit, then build the final SBOM/binary from that clean commit. Run the

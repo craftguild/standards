@@ -1,8 +1,9 @@
 # Initialization and pinned context
 
-ADR 0004 replaces archive delivery; ADR 0006 separates initializer and engine
-and controls explicit updates. Published v0.4.0 retains ADR 0004 single-CLI behavior. The normative baseline remains 0.1.0 and the execution receipt
-protocol remains `craftguild-execution-1`.
+ADR 0004 replaces archive delivery; ADR 0006 separates initializer and engine and
+controls explicit updates. The [execution guide](../guides/orchestration.md)
+describes installation and daily use. The normative baseline remains 0.1.0 and
+the execution receipt protocol remains `craftguild-execution-1`.
 
 ## Reference and entry ownership
 
@@ -16,8 +17,9 @@ qualified host deliveries; unavailable hosts are absent, never inferred from
 another host's asset. Init checks the index against the invoking clean tool.
 
 Init's root is exactly cwd. New references require published version metadata;
-source builds without matching publication are refused. Init selects the invoking initializer or engine version/revision using the
-update policy below. Exact retries reuse recorded metadata without mutable lookup.
+source builds without matching publication are refused. Init selects the invoking
+initializer or engine version/revision using the update policy below.
+Exact retries reuse recorded metadata without mutable lookup.
 Repository prime always uses the fixed verified engine.
 Consumers later use that same full revision in common-crate declarations.
 Known old pins at `standards/manifest.json` or `standards/execution/engine.json`
@@ -78,9 +80,9 @@ overview assigns common engine/font/measurement tests to standards and SDK/ABI,
 generator, domain and actual integration checks to products. Generic counter gaps
 remain upstream work; no product-specific counter is generated.
 
-## ADR 0006 update design
+## Update policy
 
-The source initializer exposes only `init [--force]` and offline presentation;
+The initializer exposes only `init [--force]` and offline presentation;
 the separate engine owns all operations. Both artifacts belong to one release
 group, version and full clean revision. Release metadata schema 3 maps every host
 to explicit `initializer` and `engine` binary/SBOM pairs. Machine engine identity
@@ -90,9 +92,17 @@ Reference schema 3 retains entry hashes and adds hashes for the local Skill and
 AGENTS common block. Schema 2 flat references can be updated only when their
 entry hashes and actual files, Skill and common block match the frozen ADR 0004
 baseline. Unknown baselines, edited blocks and unsupported protocols fail closed.
-The legacy release metadata remains readable for ownership assessment, but new
+Historical v0.4.0 metadata remains readable for ownership assessment, but new
 initialization requires role-separated metadata. No legacy binary is downloaded
 or executed to establish ownership.
+
+| Existing pin compared with the invoking CLI | `init` | `init --force` |
+| --- | --- | --- |
+| Absent | Initialize | Initialize |
+| Older version | Upgrade | Upgrade |
+| Same version and revision | Revalidate | Revalidate |
+| Same version, different revision | Error | Replace |
+| Newer version | Error | Downgrade |
 
 Stable SemVer comparison happens before transport or writes. Newer tools upgrade;
 equal version/revision revalidates the recorded reference without release lookup;

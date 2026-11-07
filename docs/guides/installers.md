@@ -1,11 +1,11 @@
 # Release assets and standalone installers
 
-These commands are implemented in the source engine extending ADR 0003. They are
-not available in published v0.2.0. Keep a matching engine and fixed entry together;
-use a source export during development, without inventing a public revision pin.
+The full engine generates download installers and packages verified release
+artifacts. Keep its fixed reference and common entry together. The public
+installer installs the init-only CLI; repository setup acquires its pinned engine.
 
 Declare an executable artifact, its release group and an installer in
-[configuration](../design/configuration.md#standard-rust-outputs-and-installers-source-extension).
+[configuration](../design/configuration.md#standard-rust-outputs-and-installers).
 Generate and check the script with the common engine:
 
 ```sh
@@ -37,28 +37,39 @@ with independent receipts, embedded/sidecar SBOMs and checksums. The public
 `scripts/install.sh` installs only `craftguild-standards`; its `init` acquires
 `craftguild-standards-engine` for the repository. The engine installer declaration
 also makes the second artifact available to common packaging. Source metadata
-schema 3 explicitly labels both roles per host. Published v0.4.0 remains a single
-full CLI and cannot be substituted for the new engine.
+schema 3 explicitly labels both roles per host. Historical v0.4.0 full-CLI assets
+cannot substitute for the separate engine.
 Standards' delivery wrapper adds flat versioned host release metadata, then
 hashes every asset except checksum files. Local source ledgers stay local.
 
 ## Download installation
 
-Serve the generated script as raw source. Once a release containing these assets
-has been published, its installation form is:
+Use the raw script from the selected release tag, rather than a GitHub HTML blob
+page. These examples select v0.5.0 and default to `~/.local/bin`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/craftguild/standards/main/scripts/install.sh | sh -s --
-curl -fsSL https://raw.githubusercontent.com/craftguild/standards/main/scripts/install.sh | sh -s -- --version 0.2.0
-curl -fsSL https://raw.githubusercontent.com/craftguild/standards/main/scripts/install.sh | sh -s -- --bindir /opt/tools/bin
-curl -fsSL https://raw.githubusercontent.com/craftguild/standards/main/scripts/install.sh | sh -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/craftguild/standards/v0.5.0/scripts/install.sh | sh -s -- --version 0.5.0
+"$HOME/.local/bin/craftguild-standards" init
 ```
 
-The explicit version is stable `X.Y.Z`, without the group's tag prefix. The
-version example identifies an existing release format; publishing this source
-script and future assets is separate work. Check asset availability for the chosen
-release and target. `--help` explains the flags without network access. Duplicate,
-unknown and incomplete options fail; `--version` cannot accompany `--uninstall`.
+Run init in the intended repository root. It acquires the engine at the installed
+CLI's exact version/revision; installing the CLI alone does not initialize or
+upgrade repositories. See the [execution guide](orchestration.md) for Make wiring,
+clone setup and updates.
+
+Choose another destination with `--bindir` or `BINDIR`. The installer uses sudo
+only when destination operations need elevation. Uninstall removes only the
+initializer binary, preserving settings and repository engine caches:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/craftguild/standards/v0.5.0/scripts/install.sh | sh -s -- --version 0.5.0 --bindir /usr/local/bin
+curl -fsSL https://raw.githubusercontent.com/craftguild/standards/v0.5.0/scripts/install.sh | sh -s -- --uninstall
+```
+
+For a custom destination, pass the same `--bindir` when uninstalling. The version
+is stable `X.Y.Z`, without the tag prefix. Check asset availability for the target.
+`--help` needs no network. Duplicate, unknown and incomplete options fail;
+`--version` cannot accompany `--uninstall`.
 
 The installer needs POSIX sh, curl, standard utilities (including mktemp and awk),
 and sha256sum or shasum. Darwin/Linux and x86_64/amd64/arm64/aarch64 map to

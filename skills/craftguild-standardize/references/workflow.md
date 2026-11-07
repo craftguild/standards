@@ -66,8 +66,12 @@ requires explicit shared-include wiring; preserve its recipes. Commit the small
 reference/entry, local skill and config. Only init and explicit `make setup`
 acquire verified pinned host assets. Ordinary operations fail with setup guidance
 when cache is missing; no archive loader, sibling fallback or implicit bootstrap
-is provided. New pins require a clean published implementing release. Published
-v0.3.0 does not provide this workflow; never invent an unpublished consumer pin.
+is provided. New pins require a clean published implementing release; never
+invent an unpublished consumer pin. The init-only CLI selects its own version and
+full revision, allowing upgrades. Downgrades and same-version revision changes
+require `--force`, which retains integrity, compatibility and local-edit checks.
+Exact retries reuse the pin; setup never updates. Manually align common-crate Git
+revisions after changes. Historical v0.4.0 has a different single-CLI grammar.
 
 ### Adopt the shared output layout
 
@@ -165,8 +169,7 @@ because a standardization request mentions public readiness.
 
 ## Package and qualify standalone installers
 
-For an engine supporting the ADR 0003 source extension (not published v0.2.0),
-declare `[[installers]]` with an executable artifact, GitHub repository, owning
+Declare `[[installers]]` with an executable artifact, GitHub repository, owning
 release group and safe script output. Run the common `installer` command and its
 read-only `--check`; ordinary `check` also rejects drift. Generated scripts remain
 implementation code without a size exception. Do not add a consumer generator.
@@ -189,14 +192,3 @@ retain the old binary on failure and remove only a regular command on uninstall.
 Qualify shared failure matrices in standards with real sh/hash and network/sudo
 process stubs. Run real binary temporary install/uninstall and offline identity/
 exact SBOM acceptance on available hosts, recording unexecuted hosts separately.
-
-
-The ADR 0006 source initializer `craftguild-standards` exposes only `init [--force]`
-and offline presentation. Repository operations use the pinned full
-`craftguild-standards-engine` through Make/launcher. Init selects its invoking
-published version/revision: upgrades are allowed; downgrades and same-version
-revision replacement need force. Force does not bypass verification or ownership.
-Exact retries reuse the reference; `make setup` only restores that fixed engine.
-Manually align common-crate Git revisions with the reported full revision and
-complete product adaptation/checks. Published v0.4.0 retains its old single-CLI
-behavior; do not assume it accepts the new flag or invent a public source pin.

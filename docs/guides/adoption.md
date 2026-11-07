@@ -49,26 +49,20 @@ their references. Ordinary standardization is not publication/install/service
 authorization; honor the later request's actual scope.
 
 
-For later authorized adoption of a release implementing ADR 0004, run init from
-that product's explicit root, then prime and relevant topics. Preserve existing
-Make/config/contracts; finish real configuration and wire the shared entry.
-Standards owns font-renderer, measurement and common-engine tests. Do not retain
-an obsolete local adapter's font tests by moving them into product core or adding
-figlet-rs/vendor. Keep SDK/ABI, canonical generation and domain gates; add only
-uncovered actual connection checks. General measurement gaps remain upstream.
-Published v0.3.0 lacks this workflow; wait for an implementing release instead of
-inventing a public consumer pin. Optional old bundle-based pilot migration scripts
-have been retired. Their common guarantees are covered by standards' execution,
-flat entry, packaging and standalone-consumer tests; actual product gates remain
-with the unmodified products.
+For authorized adoption, follow the [execution guide](orchestration.md). Install
+the initializer, run init from the product root, then read matching prime topics.
+Preserve existing Make/config/contracts, wire the shared entry and configure real
+artifacts. Common-crate Git declarations must use the full revision reported by
+the pin; init does not edit dependencies or lockfiles.
 
+The initializer selects its own published version/revision. Upgrades are allowed;
+downgrades and same-version revision changes require `--force`. Force retains
+integrity, compatibility and local-edit protection. Clones need only the committed
+entry and `make setup`; setup never updates. Historical v0.4.0 keeps its single
+CLI, and old bundle references require explicit migration rather than a guessed pin.
 
-The ADR 0006 source initializer `craftguild-standards` exposes only `init [--force]`
-and offline presentation. Repository operations use the pinned full
-`craftguild-standards-engine` through Make/launcher. Init selects its invoking
-published version/revision: upgrades are allowed; downgrades and same-version
-revision replacement need force. Force does not bypass verification or ownership.
-Exact retries reuse the reference; `make setup` only restores that fixed engine.
-Manually align common-crate Git revisions with the reported full revision and
-complete product adaptation/checks. Published v0.4.0 retains its old single-CLI
-behavior; do not assume it accepts the new flag or invent a public source pin.
+Standards owns font-renderer, measurement and common-engine tests. Retire obsolete
+adapter tests instead of moving them into product core or retaining figlet-rs/vendor.
+Keep SDK/ABI, canonical generation and domain gates; add only uncovered connection
+checks. Generic measurement gaps belong upstream. Product adoption and publication
+still require the active request's scope.

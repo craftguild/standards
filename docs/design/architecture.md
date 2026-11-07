@@ -68,5 +68,5 @@ local coordination state and working history are never prerequisites for a build
 ADR 0004 [initialization](initialization.md) replaces engine/skill archive delivery
 with fixed references, a small shared entry and matching embedded context. The
 standards engine owns acquisition, verification and rules; consumers own their
-configuration and product behavior. Only init/explicit setup acquires an engine. ADR 0006 separates the installed
-initializer from the full pinned engine; both share the initialization policy.
+configuration and product behavior. Only init/explicit setup acquires an engine. The installed initializer and full
+pinned engine share the initialization policy described in ADR 0006.

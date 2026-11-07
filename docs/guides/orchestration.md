@@ -1,15 +1,16 @@
 # Build execution
 
-The source implements ADR 0006 initializer/engine separation and controlled
-updates, extending ADR 0004 initialization and prime. Published v0.4.0 still uses
-one full CLI and retains existing pins.
-Published v0.3.0 and earlier releases retain their old delivery contracts; they
-cannot initialize this workflow. A release implementing this source is required
-for published adoption. Do not pin an older asset to unpublished source.
+The installed `craftguild-standards` initializes and updates repositories.
+The fixed `craftguild-standards-engine` handles their operations. This workflow
+uses the split CLI introduced in v0.5.0. Historical v0.4.0 retains its single CLI;
+earlier bundle-based references require explicit migration.
 
-In the selected repository's root, use a clean published implementing tool:
-Python 3 and curl must be available for initialization/setup. After setup, prime
-needs Python 3 and the verified cache, with no network or compiler.
+## Initialize a repository
+
+First [install the initializer](installers.md#download-installation). In the
+selected repository's root, Python 3 and curl must be available. Put the installed
+CLI on PATH or call it by its installed path. Prime then needs Python 3 and the
+verified cache, with no network or compiler.
 
 ```sh
 craftguild-standards init
@@ -26,7 +27,7 @@ No Git initialization, dependency migration or global skill installation occurs.
 
 Commit the fixed reference, thin entry, local skill and product configuration.
 The entry selects only exact pinned host assets in `.craftguild/engine/`.
-Explicit `make setup` restores a missing cache. Build, prepare, test/check,
+Explicit `make setup` acquires a missing cache. Build, prepare, test/check,
 release, install, package and prime never download, compile a replacement engine,
 resolve Latest or consult sibling checkouts. Invalid caches fail closed. Hash,
 revision, host and compatibility validation precede operational execution.
@@ -36,15 +37,34 @@ independently of the installed initializer version. Missing, incomplete or malfo
 product config is reported as preparation status, not successful conformance.
 Topics and full-revision source links need no copied rules tree.
 
-To update, install the desired published initializer and run `craftguild-standards
-init` in the repository root. It selects its own exact version and full revision.
+## Start after cloning
+
+A clone includes the pin and common entry, but `.craftguild` is ignored. No global
+initializer is needed:
+
+```sh
+make setup
+make prime
+```
+
+Setup downloads only the version already fixed in `standards/engine.json`. It does
+not update the pin or resolve Latest. Invalid existing cache data is an error;
+do not bypass verification or substitute an installed engine.
+
+## Update the fixed engine
+
+Install the desired published initializer and run `craftguild-standards init` in
+the repository root. It selects its own exact version and full revision.
 Upgrades use numeric stable SemVer; `init --force` additionally permits downgrades
 and same-version revision replacement. It never overrides consumer edits, invalid
 hashes or unsupported protocols. Exact retries revalidate without mutable lookup
 or rewriting managed files. Manually align common-crate Git revisions with the
 reported revision, adapt config/APIs and run product checks. Setup never updates.
-An independent clone needs only the committed entry and explicit `make setup`,
-without a global initializer installation.
+Missing or edited managed files require explicit adaptation. `--force` does not
+overwrite those edits or accept an unsupported reference. See the complete
+[update policy](../design/initialization.md#update-policy).
+
+## Build and check
 
 After configuration, use the common operations:
 
@@ -54,11 +74,12 @@ make build TARGET=x86_64-unknown-linux-gnu CARGO_TARGET_DIR=products
 python3 standards/launcher.py build --artifact example-cli --profile release
 make check
 make acceptance
-make release RELEASE_ARGS="--major --json"
+make release RELEASE_ARGS=--json
 ```
 
 The artifact name and target here are examples requiring real product declarations
-and installed toolchains. Selectors, bounded argv hooks, operation preparation,
+and installed toolchains. Use `--major` only for an explicit major release request.
+Selectors, bounded argv hooks, operation preparation,
 receipts and dependency evidence follow the [execution contract](../design/orchestration.md).
 New Rust adoption uses `<target-dir>/<target-triple>/<profile>/<file>` for native
 and cross outputs. Products retain SDK, ABI, generator and domain gates; common

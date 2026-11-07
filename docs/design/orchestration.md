@@ -253,8 +253,8 @@ operation declaration, existing dispatch semantics and gate scopes apply.
 
 ## Canonical outputs and release packaging
 
-The ADR 0003 source extension adds opt-in standard Rust layout and declarative standalone installers. It is not
-part of published v0.2.0. Build, copy-only install and package share the resolved
+Standard Rust layout and declarative standalone installers use schema 2.
+Build, copy-only install and package share the resolved
 context and complete receipt verification. Inferred install targets retain the
 receipt's explicit-target layout fact; an explicitly different selector still
 fails. Standard mode has no old-path search or compatibility copies.

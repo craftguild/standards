@@ -168,10 +168,9 @@ Repository `commands` have unique `id`, nonempty `purpose`, nonempty `argv` and
 `check`; acceptance remains an explicit separate entry. See the
 [skill policy example](../../skills/craftguild-standardize/references/policies.toml).
 
-## Standard Rust outputs and installers (source extension)
+## Standard Rust outputs and installers
 
-ADR 0003 extends schema 2 in the current source engine. Published v0.2.0 does not
-provide these fields or commands. An optional root `rust_output_layout = "standard"`
+An optional schema 2 root `rust_output_layout = "standard"`
 fixes every Rust executable/library output at
 `<target-dir>/<target-triple>/<debug|release>/<file>`, including native targets.
 Target-root precedence remains CLI, `CARGO_TARGET_DIR`, artifact `build.target_dir`,
@@ -204,19 +203,19 @@ No standard-layout opt-in is needed to package legacy receipts. See the
 [distribution guide](../guides/installers.md) for verification and runtime rules.
 
 
-## Initialization and context (source extension)
+## Initialization and context
 
 ADR 0004 adds an unfinished valid-TOML starter with `artifacts = []` and standard
 Rust output layout. Build/check validation still rejects the empty selection.
 Init preserves any existing config and never infers packages, source roles or
 adapter gates. Prime reads preparation status independently of operational
 validation and returns the fixed engine's embedded documents. See
-[initialization](initialization.md); published v0.3.0 does not provide it.
+[initialization](initialization.md).
 
 
-ADR 0006 source builds expose an init-only `craftguild-standards` and full
-`craftguild-standards-engine`, sharing one release group/version/revision with
-independent artifact preparation and receipts. Published v0.4.0 has one full CLI.
+The init-only `craftguild-standards` and full `craftguild-standards-engine` share
+one release group/version/revision, with independent artifact preparation and
+receipts. Historical v0.4.0 has one full CLI.
 `init [--force]` selects the invoking published release; numerical upgrades are
 allowed, while downgrades and same-version revision changes require force.
 Config and Cargo/npm inputs remain product-owned; manually align common-crate Git
